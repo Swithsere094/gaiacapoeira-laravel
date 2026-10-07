@@ -43,8 +43,10 @@ La base de producción ya tiene **13 tablas con datos reales**, creadas por driz
 
 - Modelo `App\Models\User` sobre la tabla **`usuarios`** (no `users`): login por **`username`**, contraseña en **`password_hash`** (`$authPasswordName`), sin `remember_token` (`$rememberTokenName = ''`, el sitio nunca tuvo "recordarme"). Roles: `admin` | `member` (`isAdmin()`).
 - **Gotcha de los hashes heredados**: bcryptjs guardó los hashes con prefijo `$2b$`; PHP genera `$2y$`. Es el mismo algoritmo y `password_verify` valida ambos, pero la comprobación estricta de Laravel rechaza `$2b$`. Por eso `config/hashing.php` tiene `'verify' => false` **fijo** (no por `.env`, para que no se pueda olvidar en producción). Laravel re-guarda cada hash como `$2y$` en el siguiente login de esa persona. Los usuarios conservan su contraseña.
-- `App\Http\Controllers\Auth\AuthController`: login y logout. Límite de **10 intentos / 15 min por IP** (cuenta cada intento). A diferencia del sitio anterior (Map en memoria), el contador vive en la caché de Laravel y sobrevive a reinicios.
+- `App\Http\Controllers\Auth\AuthController`: login y logout. Dos límites: **10 intentos / 15 min por IP** (cuenta cada intento) y **10 intentos fallidos / 15 min por usuario** (auditoría P2: frena a quien prueba contraseñas contra una cuenta desde muchas IPs; un login correcto lo reinicia). A diferencia del sitio anterior (Map en memoria), el contador vive en la caché de Laravel y sobrevive a reinicios.
 - **No hay "olvidé mi contraseña" de autoservicio** (decisión del usuario, 2026-10-07, auditoría P1): el del sitio anterior entregaba una contraseña nueva en pantalla a quien supiera usuario + email, o sea que permitía tomar cualquier cuenta. Si alguien olvida su contraseña, **un admin le asigna una nueva** desde Gestión de Usuarios (editar → "Generar aleatoria"). El login lo explica en un texto; la dirección vieja `/auth/olvide-contrasena` redirige al login. **No volver a agregar un autoservicio que muestre la contraseña en pantalla**; si se quiere autoservicio, que sea mandando la contraseña o un enlace por email al dueño de la cuenta.
+- **Contraseñas: mínimo 8 caracteres** (auditoría P3), en Gestión de Usuarios y en Mi perfil (servidor y formulario).
+- **Un admin no puede quitarse su propio rol** (auditoría P4) ni eliminarse a sí mismo: así siempre queda al menos un admin. Sí puede quitarle el rol a otro admin.
 - Todo el sitio requiere sesión (`auth`), salvo `/auth/login` (`guest`). Admin: middleware alias `admin` (`EnsureUserIsAdmin`, responde 403).
 - `HandleInertiaRequests` comparte `auth.user` **solo con los campos públicos** (misma forma que `AppUser` del sitio anterior) y `flash` (`success`, `error`).
 - `PreventCaching` pone `Cache-Control: private, no-store` en toda respuesta (el CDN de Hostinger llegó a cachear HTML protegido en el sitio anterior). Va **primero** en el grupo `web` (prepend) para que el middleware de sesión no le pise la cabecera.
@@ -60,6 +62,7 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
   - `hooks/use-auth.ts`: misma interfaz que el `useAuth()` anterior, pero el usuario sale de las props de Inertia (nunca "carga").
   - `lib/navigation.ts`: `usePathname()` / `useSearchParams()` equivalentes a los de `next/navigation`.
 - Los componentes de `components/ui/` son **los del sitio anterior** (no los del kit), para que el sitio se vea idéntico.
+- **Confirmaciones y avisos**: `useConfirm()` de `components/confirm-dialog.tsx` (`await confirm({...})` / `await notify({...})`), montado una vez en `app.tsx`. **No usar `confirm()` / `alert()` del navegador** (auditoría P7).
 - Formularios: `useForm` / `router` de Inertia (CSRF automático). Nada de `fetch` a mano contra rutas que modifican datos.
 - Lista de cordas: la UI usa `lib/constants/cordas.ts`; el servidor valida contra `App\Support\Cordas::IDS`. `tests/Unit/CordasTest.php` verifica que ambas listas y los PNG de `public/Cuerda x cuerda/` coincidan.
 - Gotcha heredado de los PNG de cordas: mucho margen transparente y el dibujo descentrado hacia arriba → `style={{ transform: "translateY(9.6%) scale(1.8)" }}` con `translateY` **primero** (si se invierte el orden, el scale amplifica el translate).
@@ -95,11 +98,12 @@ Errores que la app puede devolver y cuándo: **403** (miembro en ruta de admin),
 
 ## Seguridad (auditoría, fase 5.2)
 
-Informe completo y decisiones pendientes: `docs/auditoria-2026-10-07.md`. Lo que hay que saber al tocar el código:
+Informe completo y decisiones tomadas: `docs/auditoria-2026-10-07.md`. Lo que hay que saber al tocar el código:
 
 - **IP del visitante para límites de intentos**: `App\Support\ClientIp` (última IP de `X-Forwarded-For`, la que agrega el proxy de Hostinger). **No usar `trustProxies('*')`** ni `$request->ip()` para eso: con el proxy delante, `ip()` sería la del proxy (límite global) y `trustProxies('*')` devuelve la primera IP de la cabecera, que el visitante puede inventar. Pendiente verificar el formato real en producción.
+- `songs.user_id` **no se guarda** al crear canciones, igual que en el sitio original (decisión del usuario, auditoría P6).
 - **Videos**: solo YouTube/Vimeo (`App\Rules\VideoUrl`, por dominio exacto) en canciones, rodas y cantorias; en el navegador `toEmbedUrl()` arma siempre la URL del reproductor desde el ID y devuelve `''` si no reconoce la URL (nunca embebe la URL tal cual).
-- **Cabeceras**: `SecurityHeaders` (middleware global) agrega `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS por https. No hay CSP todavía (decisión pendiente).
+- **Cabeceras**: `SecurityHeaders` (middleware global) agrega `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS por https. **No hay Content-Security-Policy, a propósito** (decisión del usuario, 2026-10-07, auditoría P5): se postergó. Si se retoma, cómo hacerlo está en el informe de auditoría (empezar en modo `Report-Only`).
 - **https detrás del proxy**: en producción, si `APP_URL` es https, `AppServiceProvider` fuerza `URL::forceScheme('https')`.
 - **Sesión**: 7 días (`SESSION_LIFETIME=10080`, como el sitio anterior); en producción `SESSION_SECURE_COOKIE=true`. Valores obligatorios de producción: al final de `.env.example`.
 - **Dependencias**: `npm audit` y `composer audit` en 0. Hay `overrides` en `package.json` para forzar versiones parcheadas de `shell-quote` y `@babel/core`, y `vite` es un alias de `@voidzero-dev/vite-plus-core` (lo exige `vite-plus` ≥ 0.3.3; no cambiarlo por `vite` a secas).
@@ -123,5 +127,5 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; P1 resuelto quitando el "olvidé mi contraseña"; quedan decisiones menores P2–P7 del usuario).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; todas las decisiones P1–P7 tomadas y aplicadas: P5 (CSP) postergada y P6 (`songs.user_id`) descartada, a propósito).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.

@@ -33,6 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useConfirm } from '@/components/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import type { AppUser } from '@/types';
@@ -65,6 +66,7 @@ const roleColors = {
 
 export default function AdminUsuarios({ users }: { users: AppUser[] }) {
     const { user } = useAuth();
+    const { confirm, notify } = useConfirm();
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AppUser | null>(null);
@@ -122,8 +124,8 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
             return;
         }
 
-        if (data.password && data.password.length < 6) {
-            setClientError('La contraseña debe tener al menos 6 caracteres');
+        if (data.password && data.password.length < 8) {
+            setClientError('La contraseña debe tener al menos 8 caracteres');
 
             return;
         }
@@ -149,25 +151,36 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
         }
     };
 
-    const handleDelete = (u: AppUser) => {
+    const handleDelete = async (u: AppUser) => {
         if (u.id === user.id) {
-            alert('No puedes eliminarte a ti mismo.');
+            await notify({ title: 'No puedes eliminarte a ti mismo.' });
 
             return;
         }
 
-        if (!confirm(`¿Eliminar al usuario "${u.name}"?`)) {
+        const ok = await confirm({
+            title: `¿Eliminar al usuario "${u.name}"?`,
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+            destructive: true,
+        });
+
+        if (!ok) {
             return;
         }
 
         router.delete(`/admin/usuarios/${u.id}`, {
             preserveScroll: true,
             onError: (errors) =>
-                alert(errors.user ?? 'No se pudo eliminar el usuario.'),
+                void notify({
+                    title: errors.user ?? 'No se pudo eliminar el usuario.',
+                }),
         });
     };
 
     const formError = clientError || Object.values(form.errors)[0];
+    // El servidor también lo impide (auditoría P4).
+    const editingSelf = editingUser?.id === user.id;
 
     return (
         <div className="min-h-screen bg-background">
@@ -342,7 +355,7 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                 onValueChange={(v: 'admin' | 'member') =>
                                     form.setData('role', v)
                                 }
-                                disabled={form.processing}
+                                disabled={form.processing || editingSelf}
                             >
                                 <SelectTrigger id="role">
                                     <SelectValue />
@@ -356,6 +369,13 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
+                            {editingSelf && (
+                                <p className="text-xs text-muted-foreground">
+                                    No puedes quitarte tu propio rol de
+                                    administrador: así el sitio nunca queda sin
+                                    nadie que gestione los usuarios.
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -401,7 +421,7 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                             )
                                         }
                                         disabled={form.processing}
-                                        placeholder="Mínimo 6 caracteres"
+                                        placeholder="Mínimo 8 caracteres"
                                         required={!editingUser}
                                         className="pr-10"
                                         autoComplete="new-password"

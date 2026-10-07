@@ -128,6 +128,44 @@ class AdminUsersTest extends TestCase
         $this->assertDatabaseHas('usuarios', ['id' => $admin->id]);
     }
 
+    public function test_la_contrasena_necesita_al_menos_8_caracteres(): void
+    {
+        $this->actingAsRole('admin');
+        $user = User::factory()->create(['password_hash' => 'original1']);
+
+        $this->post('/admin/usuarios', [...$this->valid, 'password' => '1234567'])
+            ->assertSessionHasErrors(['password' => 'La contraseña debe tener al menos 8 caracteres']);
+        $this->put("/admin/usuarios/{$user->id}", ['name' => $user->name, 'role' => 'member', 'password' => '1234567'])
+            ->assertSessionHasErrors('password');
+
+        $this->post('/admin/usuarios', [...$this->valid, 'password' => '12345678'])->assertSessionHasNoErrors();
+        $this->assertTrue(Hash::check('original1', $user->fresh()->password_hash));
+    }
+
+    public function test_un_admin_no_puede_quitarse_su_propio_rol(): void
+    {
+        $admin = $this->actingAsRole('admin');
+
+        $this->put("/admin/usuarios/{$admin->id}", ['name' => 'Yo', 'role' => 'member'])
+            ->assertSessionHasErrors(['role' => 'No puedes quitarte tu propio rol de administrador']);
+
+        $this->assertSame('admin', $admin->fresh()->role);
+
+        // Sí puede editar el resto de sus datos manteniendo el rol.
+        $this->put("/admin/usuarios/{$admin->id}", ['name' => 'Yo', 'role' => 'admin'])->assertSessionHasNoErrors();
+        $this->assertSame('Yo', $admin->fresh()->name);
+    }
+
+    public function test_un_admin_si_puede_quitarle_el_rol_a_otro_admin(): void
+    {
+        $this->actingAsRole('admin');
+        $otro = User::factory()->create(['role' => 'admin']);
+
+        $this->put("/admin/usuarios/{$otro->id}", ['name' => $otro->name, 'role' => 'member'])->assertSessionHasNoErrors();
+
+        $this->assertSame('member', $otro->fresh()->role);
+    }
+
     public function test_editar_un_usuario_inexistente_da_404(): void
     {
         $this->actingAsRole('admin');

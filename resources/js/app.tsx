@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { ConfirmDialogProvider } from '@/components/confirm-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Areia no Mar';
@@ -9,7 +10,11 @@ void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     strictMode: true,
     withApp(app) {
-        return <TooltipProvider delayDuration={0}>{app}</TooltipProvider>;
+        return (
+            <TooltipProvider delayDuration={0}>
+                <ConfirmDialogProvider>{app}</ConfirmDialogProvider>
+            </TooltipProvider>
+        );
     },
     progress: {
         color: '#AF9A4F',

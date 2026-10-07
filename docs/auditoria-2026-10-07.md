@@ -57,17 +57,12 @@ Gravedad: **Crítica** (compromete el servidor), **Alta** (expone datos o rompe 
 | # | Gravedad | Hallazgo | Decisión |
 |---|---|---|---|
 | P1 | **Alta** | **"Olvidé mi contraseña" permitía tomar cualquier cuenta conociendo su usuario y email**: mostraba una contraseña nueva en pantalla a quien acertara la combinación, e invalidaba la del dueño. Era el comportamiento del sitio original. | ✅ **Resuelto (2026-10-07), opción (b)**: se quitó el autoservicio. Si alguien olvida su contraseña, un admin le asigna una nueva desde Gestión de Usuarios. El login lo explica y la dirección vieja redirige al login. Probado en tests y en navegador (el admin asigna la clave nueva y la persona entra con ella). Si en el futuro se quiere autoservicio, que sea por email al dueño de la cuenta (opción (a) original). |
-
-## Decisiones pendientes (no se cambiaron: cambian cómo funciona algo)
-
-| # | Gravedad | Hallazgo | Opciones |
-|---|---|---|---|
-| P2 | Media | El límite de intentos de login es solo por IP: alguien con muchas IPs podría probar contraseñas contra una cuenta. | Agregar además un límite por usuario (contra: permite bloquearle el login a alguien a propósito por 15 min). |
-| P3 | Baja–Media | Contraseña mínima de 6 caracteres. | Subir a 8 o más (solo afectaría contraseñas nuevas). |
-| P4 | Baja | Un admin puede quitarse su propio rol o borrar a los demás admins: el sitio podría quedar sin ningún admin. | Impedir que un admin se quite el rol a sí mismo y que se borre el último admin. |
-| P5 | Baja | No hay Content-Security-Policy. | Agregarla con el inventario de orígenes (YouTube, Vimeo); hacerlo con calma y probando. |
-| P6 | Calidad | Las canciones nuevas no guardan quién las creó (`songs.user_id`), igual que en el sitio original. | Guardarlo (invisible para el usuario). |
-| P7 | UX | Confirmaciones y avisos usan las ventanas nativas del navegador (`confirm`/`alert`), como en el original. | Diálogos con el estilo del sitio. |
+| P2 | Media | El límite de intentos de login era solo por IP: alguien con muchas IPs podía probar contraseñas contra una cuenta. | ✅ **Resuelto (2026-10-07), opción (a)**: además del límite por IP hay uno **por usuario** (10 intentos fallidos / 15 min; un login correcto lo reinicia). Contra aceptado: alguien podría bloquearle el login a otra persona a propósito por 15 minutos. El mensaje es el mismo exista o no el usuario. |
+| P3 | Baja–Media | Contraseña mínima de 6 caracteres. | ✅ **Resuelto (2026-10-07), opción (a)**: mínimo **8** caracteres, en Gestión de Usuarios (crear/editar) y en Mi perfil. Solo afecta contraseñas nuevas: las existentes siguen funcionando. |
+| P4 | Baja | Un admin podía quitarse su propio rol: el sitio podía quedar sin ningún admin. | ✅ **Resuelto (2026-10-07), opción (a)**: un admin **no puede quitarse su propio rol** (el selector aparece bloqueado con una explicación y el servidor lo rechaza). Como tampoco puede eliminarse a sí mismo, siempre queda al menos un admin: el que está haciendo los cambios. Sí puede quitarle el rol a otro admin. |
+| P5 | Baja | No hay Content-Security-Policy. | ⏸️ **Postergado a propósito (2026-10-07), opción (b)**: por ahora no se agrega. El riesgo que mitigaría (código inyectado en la página) ya está cubierto en buena parte: React escapa todo el contenido, los videos solo se embeben desde YouTube/Vimeo armando la URL desde el ID, y el resto de las cabeceras de seguridad están activas. Si se retoma: hacer el inventario de orígenes (YouTube, Vimeo, Google Fonts si aplica, el propio sitio para Vite en producción), empezar en modo `Content-Security-Policy-Report-Only` y probar todas las páginas antes de activarla. |
+| P6 | Calidad | Las canciones nuevas no guardan quién las creó (`songs.user_id`), igual que en el sitio original. | ❌ **No se hace (2026-10-07), opción (b)**: se mantiene como en el sitio original. |
+| P7 | UX | Confirmaciones y avisos usaban las ventanas nativas del navegador (`confirm`/`alert`), como en el original. | ✅ **Resuelto (2026-10-07), opción (a)**: diálogos con el estilo del sitio (`components/confirm-dialog.tsx`) al eliminar canciones, rodas, cantorias, documentos y usuarios, y para los avisos de error. |
 
 ## Para la fase 7 (publicación)
 

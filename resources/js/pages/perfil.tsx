@@ -85,9 +85,9 @@ export default function Perfil() {
         e.preventDefault();
         setPassError('');
 
-        if (passForm.data.password.length < 6) {
+        if (passForm.data.password.length < 8) {
             setPassError(
-                'La nueva contraseña debe tener al menos 6 caracteres',
+                'La nueva contraseña debe tener al menos 8 caracteres',
             );
 
             return;
@@ -382,7 +382,7 @@ export default function Perfil() {
                                                 )
                                             }
                                             disabled={passForm.processing}
-                                            placeholder="Mínimo 6 caracteres"
+                                            placeholder="Mínimo 8 caracteres"
                                             required
                                             autoComplete="new-password"
                                             className="pr-10"

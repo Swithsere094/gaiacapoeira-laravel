@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
+import { useConfirm } from '@/components/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { SectionLayout } from '@/components/section-layout';
 import {
@@ -70,6 +71,7 @@ const EMPTY_FORM = {
 
 export default function PoliticaPage({ docs }: { docs: PoliticaDoc[] }) {
     const { user } = useAuth();
+    const { confirm, notify } = useConfirm();
     const isAdmin = user?.role === 'admin';
 
     // Los documentos llegan como props de Inertia (ya cargados por el
@@ -178,11 +180,18 @@ export default function PoliticaPage({ docs }: { docs: PoliticaDoc[] }) {
     };
 
     // ── Delete ─────────────────────────────────────────────────────────
-    const handleDelete = (id: string) => {
-        if (!confirm('¿Eliminar este documento?')) return;
+    const handleDelete = async (id: string) => {
+        const ok = await confirm({
+            title: '¿Eliminar este documento?',
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+            destructive: true,
+        });
+        if (!ok) return;
         router.delete(`/politica/${id}`, {
             preserveScroll: true,
-            onError: () => alert('No se pudo eliminar el documento.'),
+            onError: () =>
+                void notify({ title: 'No se pudo eliminar el documento.' }),
         });
     };
 
