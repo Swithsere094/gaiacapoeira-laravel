@@ -52,11 +52,16 @@ Gravedad: **Crítica** (compromete el servidor), **Alta** (expone datos o rompe 
 - **Contraseñas**: bcrypt; los hashes nunca se envían al navegador (probado).
 - **Secretos**: `.env` fuera de git; ningún secreto en el historial.
 
+## Decisiones tomadas
+
+| # | Gravedad | Hallazgo | Decisión |
+|---|---|---|---|
+| P1 | **Alta** | **"Olvidé mi contraseña" permitía tomar cualquier cuenta conociendo su usuario y email**: mostraba una contraseña nueva en pantalla a quien acertara la combinación, e invalidaba la del dueño. Era el comportamiento del sitio original. | ✅ **Resuelto (2026-10-07), opción (b)**: se quitó el autoservicio. Si alguien olvida su contraseña, un admin le asigna una nueva desde Gestión de Usuarios. El login lo explica y la dirección vieja redirige al login. Probado en tests y en navegador (el admin asigna la clave nueva y la persona entra con ella). Si en el futuro se quiere autoservicio, que sea por email al dueño de la cuenta (opción (a) original). |
+
 ## Decisiones pendientes (no se cambiaron: cambian cómo funciona algo)
 
 | # | Gravedad | Hallazgo | Opciones |
 |---|---|---|---|
-| P1 | **Alta** | **"Olvidé mi contraseña" permite tomar cualquier cuenta conociendo su usuario y email**: muestra una contraseña nueva en pantalla a quien acierte la combinación (el email suele ser fácil de adivinar o conocer). Además invalida la contraseña del dueño. Es el comportamiento del sitio original. | (a) Enviar la contraseña temporal **por email** al dueño (requiere configurar el correo de Hostinger). (b) Quitar el autoservicio: el admin resetea desde Gestión de Usuarios (ya existe). (c) Mantenerlo como está. **Recomendado: (a), o (b) mientras tanto.** |
 | P2 | Media | El límite de intentos de login es solo por IP: alguien con muchas IPs podría probar contraseñas contra una cuenta. | Agregar además un límite por usuario (contra: permite bloquearle el login a alguien a propósito por 15 min). |
 | P3 | Baja–Media | Contraseña mínima de 6 caracteres. | Subir a 8 o más (solo afectaría contraseñas nuevas). |
 | P4 | Baja | Un admin puede quitarse su propio rol o borrar a los demás admins: el sitio podría quedar sin ningún admin. | Impedir que un admin se quite el rol a sí mismo y que se borre el último admin. |

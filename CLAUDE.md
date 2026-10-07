@@ -43,9 +43,10 @@ La base de producción ya tiene **13 tablas con datos reales**, creadas por driz
 
 - Modelo `App\Models\User` sobre la tabla **`usuarios`** (no `users`): login por **`username`**, contraseña en **`password_hash`** (`$authPasswordName`), sin `remember_token` (`$rememberTokenName = ''`, el sitio nunca tuvo "recordarme"). Roles: `admin` | `member` (`isAdmin()`).
 - **Gotcha de los hashes heredados**: bcryptjs guardó los hashes con prefijo `$2b$`; PHP genera `$2y$`. Es el mismo algoritmo y `password_verify` valida ambos, pero la comprobación estricta de Laravel rechaza `$2b$`. Por eso `config/hashing.php` tiene `'verify' => false` **fijo** (no por `.env`, para que no se pueda olvidar en producción). Laravel re-guarda cada hash como `$2y$` en el siguiente login de esa persona. Los usuarios conservan su contraseña.
-- `App\Http\Controllers\Auth\AuthController`: login, logout y "olvidé mi contraseña" (usuario + email coinciden → contraseña temporal de 10 caracteres sin caracteres confusos, mostrada **una vez** vía flash de sesión). Límites por IP que cuentan cada intento: **10 / 15 min** en login, **5 / 15 min** en olvidé contraseña. A diferencia del sitio anterior (Map en memoria), el contador vive en la caché de Laravel y sobrevive a reinicios.
-- Todo el sitio requiere sesión (`auth`), salvo `/auth/login` y `/auth/olvide-contrasena` (`guest`). Admin: middleware alias `admin` (`EnsureUserIsAdmin`, responde 403).
-- `HandleInertiaRequests` comparte `auth.user` **solo con los campos públicos** (misma forma que `AppUser` del sitio anterior) y `flash` (`success`, `error`, `tempPassword`).
+- `App\Http\Controllers\Auth\AuthController`: login y logout. Límite de **10 intentos / 15 min por IP** (cuenta cada intento). A diferencia del sitio anterior (Map en memoria), el contador vive en la caché de Laravel y sobrevive a reinicios.
+- **No hay "olvidé mi contraseña" de autoservicio** (decisión del usuario, 2026-10-07, auditoría P1): el del sitio anterior entregaba una contraseña nueva en pantalla a quien supiera usuario + email, o sea que permitía tomar cualquier cuenta. Si alguien olvida su contraseña, **un admin le asigna una nueva** desde Gestión de Usuarios (editar → "Generar aleatoria"). El login lo explica en un texto; la dirección vieja `/auth/olvide-contrasena` redirige al login. **No volver a agregar un autoservicio que muestre la contraseña en pantalla**; si se quiere autoservicio, que sea mandando la contraseña o un enlace por email al dueño de la cuenta.
+- Todo el sitio requiere sesión (`auth`), salvo `/auth/login` (`guest`). Admin: middleware alias `admin` (`EnsureUserIsAdmin`, responde 403).
+- `HandleInertiaRequests` comparte `auth.user` **solo con los campos públicos** (misma forma que `AppUser` del sitio anterior) y `flash` (`success`, `error`).
 - `PreventCaching` pone `Cache-Control: private, no-store` en toda respuesta (el CDN de Hostinger llegó a cachear HTML protegido en el sitio anterior). Va **primero** en el grupo `web` (prepend) para que el middleware de sesión no le pise la cabecera.
 
 ### Qué se quitó del kit (a propósito)
@@ -122,5 +123,5 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; quedan decisiones pendientes del usuario, la más importante el "olvidé mi contraseña").
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; P1 resuelto quitando el "olvidé mi contraseña"; quedan decisiones menores P2–P7 del usuario).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.

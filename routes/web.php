@@ -14,9 +14,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->prefix('auth')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login']);
-    Route::get('olvide-contrasena', [AuthController::class, 'showForgotPassword'])->name('password.forgot');
-    Route::post('olvide-contrasena', [AuthController::class, 'resetPassword']);
 });
+
+// "Olvidé mi contraseña" ya no existe (lo resuelve un admin): la dirección
+// vieja lleva al login, que explica qué hacer.
+Route::get('auth/olvide-contrasena', fn () => redirect('/auth/login'));
 
 // ── Todo lo demás requiere sesión ────────────────────────────────────
 Route::middleware('auth')->group(function () {
