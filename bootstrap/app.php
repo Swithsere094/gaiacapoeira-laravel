@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventCaching;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TrackPageView;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo('/');
 
         $middleware->alias(['admin' => EnsureUserIsAdmin::class]);
+
+        // Sin trustProxies('*') a propósito: devolvería la PRIMERA IP de
+        // X-Forwarded-For, que el visitante puede inventar. La IP para los
+        // límites de intentos la resuelve App\Support\ClientIp.
+
+        $middleware->append(SecurityHeaders::class);
 
         // Primero del grupo = último en tocar la respuesta: así su
         // Cache-Control no lo pisa el middleware de sesión.

@@ -70,6 +70,10 @@ export default defineConfig({
             'composer.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
+            // Contenido redactado a mano: no se reformatea.
+            '*.md',
+            'resources/js/content/**',
+            'public/**',
         ],
         sortTailwindcss: {
             functions: ['clsx', 'cn', 'cva'],

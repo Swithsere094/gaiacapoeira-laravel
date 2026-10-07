@@ -77,4 +77,16 @@ return [
         public_path('storage') => storage_path('app/public'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Archivos subidos por usuarios (App\Support\Uploads)
+    |--------------------------------------------------------------------------
+    |
+    | Fuera de public/ a propósito: se sirven por la ruta /uploads/{path}, que
+    | exige sesión. Los tests lo apuntan a una carpeta temporal.
+    |
+    */
+
+    'uploads_root' => storage_path('app/uploads'),
+
 ];

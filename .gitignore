@@ -38,7 +38,3 @@ yarn-error.log
 /opencode.json
 /opencode.jsonc
 
-# Archivos subidos por usuarios (no son código). Se versiona solo el
-# .htaccess que impide ejecutar scripts en esa carpeta.
-/public/uploads/*
-!/public/uploads/.htaccess

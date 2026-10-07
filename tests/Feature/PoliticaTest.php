@@ -14,22 +14,22 @@ class PoliticaTest extends TestCase
 {
     use RefreshDatabase;
 
-    private string $publicDir;
+    private string $baseDir;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         // Los archivos de los tests van a una carpeta temporal, nunca a la
-        // public/uploads real.
-        $this->publicDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'gaia-test-public-'.uniqid();
-        File::ensureDirectoryExists($this->publicDir.'/uploads');
-        $this->app->usePublicPath($this->publicDir);
+        // carpeta de subidas real.
+        $this->baseDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'gaia-test-public-'.uniqid();
+        File::ensureDirectoryExists($this->baseDir.'/uploads');
+        config(['filesystems.uploads_root' => $this->baseDir.DIRECTORY_SEPARATOR.'uploads']);
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->publicDir);
+        File::deleteDirectory($this->baseDir);
         parent::tearDown();
     }
 
@@ -53,7 +53,7 @@ class PoliticaTest extends TestCase
 
     private function diskPath(string $url): string
     {
-        return $this->publicDir.str_replace('/', DIRECTORY_SEPARATOR, $url);
+        return $this->baseDir.str_replace('/', DIRECTORY_SEPARATOR, $url);
     }
 
     // ── Ver ─────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ class PoliticaTest extends TestCase
             ->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('politica', 0);
-        $this->assertSame([], File::allFiles($this->publicDir.'/uploads'));
+        $this->assertSame([], File::allFiles($this->baseDir.'/uploads'));
     }
 
     public function test_rechaza_archivos_de_mas_de_20_mb(): void
@@ -197,7 +197,7 @@ class PoliticaTest extends TestCase
     public function test_un_file_url_manipulado_nunca_borra_fuera_de_uploads(): void
     {
         $this->actingAsRole('admin');
-        $sentinel = $this->publicDir.DIRECTORY_SEPARATOR.'importante.txt';
+        $sentinel = $this->baseDir.DIRECTORY_SEPARATOR.'importante.txt';
         File::put($sentinel, 'no me borres');
         $doc = Politica::factory()->create(['file_url' => '/uploads/../importante.txt']);
 
@@ -206,5 +206,32 @@ class PoliticaTest extends TestCase
         $this->assertFileExists($sentinel);
         $this->assertNull(Uploads::pathFor('/uploads/../importante.txt'));
         $this->assertNull(Uploads::pathFor('https://otro-sitio.com/x.pdf'));
+    }
+
+    // ── Descargar ───────────────────────────────────────────────────
+
+    public function test_los_archivos_solo_se_descargan_con_sesion(): void
+    {
+        $this->actingAsRole('admin');
+        $this->post('/politica', ['title' => 'Doc interno', 'file' => $this->pdf()]);
+        $url = Politica::first()->file_url;
+
+        // Con sesión (cualquier miembro): se entrega el archivo.
+        $this->actingAsRole('member');
+        $this->get($url)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        // Sin sesión: al login, como el resto del sitio.
+        auth()->logout();
+        $this->get($url)->assertRedirect('/auth/login');
+    }
+
+    public function test_la_descarga_no_puede_salir_de_la_carpeta_de_subidas(): void
+    {
+        $this->actingAsRole('member');
+        File::put($this->baseDir.DIRECTORY_SEPARATOR.'importante.txt', 'secreto');
+
+        $this->get('/uploads/../importante.txt')->assertNotFound();
+        $this->get('/uploads/%2e%2e/importante.txt')->assertNotFound();
+        $this->get('/uploads/politica/no-existe.pdf')->assertNotFound();
     }
 }

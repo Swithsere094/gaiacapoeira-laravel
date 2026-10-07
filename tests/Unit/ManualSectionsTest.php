@@ -17,7 +17,8 @@ class ManualSectionsTest extends TestCase
         $root = dirname(__DIR__, 2).'/resources/js';
 
         preg_match_all('/<ManualSection id="([^"]+)">/', file_get_contents($root.'/content/politica/manual-convivencia.mdx'), $mdx);
-        preg_match_all('/\{\s*id:\s*"([^"]+)"/', file_get_contents($root.'/lib/constants/manual-sections.ts'), $toc);
+        // Acepta comillas simples o dobles (el formateador usa simples).
+        preg_match_all('/\{\s*id:\s*[\'"]([^\'"]+)[\'"]/', file_get_contents($root.'/lib/constants/manual-sections.ts'), $toc);
 
         $this->assertNotEmpty($mdx[1]);
         $this->assertSame($mdx[1], $toc[1]);

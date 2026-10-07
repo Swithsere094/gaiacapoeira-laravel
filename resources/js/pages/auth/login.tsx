@@ -2,7 +2,12 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { Lock, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -26,7 +31,9 @@ export default function Login() {
                         <Lock className="h-8 w-8 text-primary" />
                     </div>
                     {/* CardTitle renderiza un <div>: la página necesita un <h1> real. */}
-                    <h1 className="font-serif text-2xl leading-none font-semibold text-foreground">Areia no Mar</h1>
+                    <h1 className="font-serif text-2xl leading-none font-semibold text-foreground">
+                        Areia no Mar
+                    </h1>
                     <CardDescription className="text-muted-foreground">
                         Ingresa tus credenciales para acceder al repositorio
                     </CardDescription>
@@ -35,7 +42,10 @@ export default function Login() {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="username" className="text-foreground">
+                            <Label
+                                htmlFor="username"
+                                className="text-foreground"
+                            >
                                 Usuario
                             </Label>
                             <div className="relative">
@@ -46,7 +56,9 @@ export default function Login() {
                                     autoComplete="username"
                                     placeholder="tu-usuario"
                                     value={form.data.username}
-                                    onChange={(e) => form.setData('username', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('username', e.target.value)
+                                    }
                                     className="border-border bg-input pl-9 text-foreground"
                                     required
                                     disabled={form.processing}
@@ -55,7 +67,10 @@ export default function Login() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="text-foreground">
+                            <Label
+                                htmlFor="password"
+                                className="text-foreground"
+                            >
                                 Contraseña
                             </Label>
                             <div className="relative">
@@ -66,7 +81,9 @@ export default function Login() {
                                     autoComplete="current-password"
                                     placeholder="••••••••"
                                     value={form.data.password}
-                                    onChange={(e) => form.setData('password', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData('password', e.target.value)
+                                    }
                                     className="border-border bg-input pl-9 text-foreground"
                                     required
                                     disabled={form.processing}
@@ -75,7 +92,10 @@ export default function Login() {
                         </div>
 
                         {error && (
-                            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+                            <p
+                                role="alert"
+                                className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive"
+                            >
                                 {error}
                             </p>
                         )}

@@ -12,7 +12,9 @@ export function usePathname(): string {
 
 export function useSearchParams(): URLSearchParams {
     const { url } = usePage();
-    const query = url.includes('?') ? url.slice(url.indexOf('?') + 1).split('#')[0] : '';
+    const query = url.includes('?')
+        ? url.slice(url.indexOf('?') + 1).split('#')[0]
+        : '';
 
     return new URLSearchParams(query);
 }

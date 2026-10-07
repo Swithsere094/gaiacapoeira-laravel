@@ -19,7 +19,8 @@ class CordasTest extends TestCase
     public function test_los_ids_coinciden_con_los_de_la_ui(): void
     {
         $ts = file_get_contents($this->root().'/resources/js/lib/constants/cordas.ts');
-        preg_match_all('/\{\s*id:\s*"([^"]+)"/', $ts, $m);
+        // Acepta comillas simples o dobles (el formateador usa simples).
+        preg_match_all('/\{\s*id:\s*[\'"]([^\'"]+)[\'"]/', $ts, $m);
 
         $this->assertNotEmpty($m[1]);
         $this->assertSame($m[1], Cordas::IDS);

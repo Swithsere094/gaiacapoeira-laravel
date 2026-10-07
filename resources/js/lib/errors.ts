@@ -11,7 +11,8 @@ export interface ErrorCopy {
 export const ERROR_COPY: Record<number, ErrorCopy> = {
     403: {
         title: 'Sin permisos',
-        message: 'No tienes acceso a esta sección. Si crees que es un error, habla con un administrador del grupo.',
+        message:
+            'No tienes acceso a esta sección. Si crees que es un error, habla con un administrador del grupo.',
     },
     404: {
         title: 'Página no encontrada',
@@ -19,27 +20,33 @@ export const ERROR_COPY: Record<number, ErrorCopy> = {
     },
     405: {
         title: 'Acción no permitida',
-        message: 'Esta dirección no admite la acción que intentaste. Vuelve atrás y usa los botones del sitio.',
+        message:
+            'Esta dirección no admite la acción que intentaste. Vuelve atrás y usa los botones del sitio.',
     },
     413: {
         title: 'Archivo demasiado grande',
-        message: 'El archivo que intentaste subir supera el tamaño permitido (máximo 20 MB).',
+        message:
+            'El archivo que intentaste subir supera el tamaño permitido (máximo 20 MB).',
     },
     419: {
         title: 'La página expiró',
-        message: 'Tu sesión o el formulario venció por inactividad. Recarga la página e inténtalo de nuevo.',
+        message:
+            'Tu sesión o el formulario venció por inactividad. Recarga la página e inténtalo de nuevo.',
     },
     429: {
         title: 'Demasiados intentos',
-        message: 'Hiciste demasiadas solicitudes seguidas. Espera un momento y vuelve a intentarlo.',
+        message:
+            'Hiciste demasiadas solicitudes seguidas. Espera un momento y vuelve a intentarlo.',
     },
     500: {
         title: 'Algo salió mal',
-        message: 'Ocurrió un error inesperado en el servidor. Ya quedó registrado; inténtalo de nuevo en unos minutos.',
+        message:
+            'Ocurrió un error inesperado en el servidor. Ya quedó registrado; inténtalo de nuevo en unos minutos.',
     },
     503: {
         title: 'Sitio en mantenimiento',
-        message: 'Estamos haciendo mejoras en el sitio. Vuelve en unos minutos.',
+        message:
+            'Estamos haciendo mejoras en el sitio. Vuelve en unos minutos.',
     },
 };
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ClientIp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +44,7 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $this->throttle('login:'.$request->ip(), self::LOGIN_LIMIT, 'username');
+        $this->throttle('login:'.ClientIp::for($request), self::LOGIN_LIMIT, 'username');
 
         $credentials = $request->validate([
             'username' => ['required', 'string', 'max:255'],
@@ -85,7 +86,7 @@ class AuthController extends Controller
     public function resetPassword(Request $request): RedirectResponse
     {
         // Más estricto que login: un intento exitoso entrega una contraseña.
-        $this->throttle('olvide:'.$request->ip(), self::RESET_LIMIT, 'username');
+        $this->throttle('olvide:'.ClientIp::for($request), self::RESET_LIMIT, 'username');
 
         $data = $request->validate([
             'username' => ['required', 'string', 'max:255'],

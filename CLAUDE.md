@@ -73,9 +73,9 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 ## Política (fase 4)
 
 - **Documentos** (`PoliticaController`, página `politica`): ver → cualquier sesión; crear/editar/eliminar → admin. Categorías fijas (`PoliticaController::CATEGORIES`). Las tarjetas de "Manual de Convivencia" y "Cordas y Graduación" abren las páginas propias (`/politica/manual`, `/politica/cordas`), no un archivo.
-- **Archivos subidos** (`App\Support\Uploads`): se guardan en `public/uploads/<carpeta>/` como `<ms>_<nombre_seguro>.<ext>` y se sirven en `/uploads/...` — **misma URL que el sitio anterior**, así los `file_url` ya guardados siguen andando. El archivo viaja en la **misma petición** que el documento y la URL la decide el servidor (el sitio anterior aceptaba cualquier `file_url` del navegador). Con archivo, editar va como `POST` + `_method=put` (PHP no parsea multipart en un PUT real).
-- **Seguridad de subidas (crítico en hosting PHP)**: solo `pdf, doc, docx, txt, jpg, jpeg, png, webp`, validando extensión **y contenido real** (`extensions` + `mimes`), máx 20 MB. `public/uploads/.htaccess` (versionado; el resto de la carpeta está en `.gitignore`) impide ejecutar scripts ahí como segunda barrera. Borrar solo afecta archivos dentro de `public/uploads` (`Uploads::pathFor` resuelve `realpath`). Reemplazar o quitar el archivo de un documento borra el anterior del disco.
-- En tests, `PoliticaTest` redirige `public_path()` a una carpeta temporal; para probar archivos disfrazados usa archivos reales en disco (los `UploadedFile::fake()` declaran el tipo por la extensión, no por el contenido).
+- **Archivos subidos** (`App\Support\Uploads`): se guardan en **`storage/app/uploads/<carpeta>/`** (fuera de `public/`, configurable en `config/filesystems.php` → `uploads_root`) como `<ms>_<nombre_seguro>.<ext>`, y se entregan con la ruta **`GET /uploads/{path}`** (`UploadController`, **exige sesión**). La URL es la **misma del sitio anterior**, así los `file_url` ya guardados siguen andando. **No mover los archivos a `public/`**: lo que está ahí lo sirve el servidor web directo, sin login (en el sitio Next los PDFs sí pasaban por el filtro de sesión), y en un hosting PHP un archivo subido en una carpeta pública podría ejecutarse. El archivo viaja en la **misma petición** que el documento y la URL la decide el servidor (el sitio anterior aceptaba cualquier `file_url` del navegador). Con archivo, editar va como `POST` + `_method=put` (PHP no parsea multipart en un PUT real).
+- **Seguridad de subidas**: solo `pdf, doc, docx, txt, jpg, jpeg, png, webp`, validando extensión **y contenido real** (`extensions` + `mimes`), máx 20 MB. Borrar y descargar solo actúan dentro de la carpeta de subidas (`Uploads::pathFor` resuelve `realpath`). Reemplazar o quitar el archivo de un documento borra el anterior del disco.
+- En tests, `PoliticaTest` apunta `filesystems.uploads_root` a una carpeta temporal; para probar archivos disfrazados usa archivos reales en disco (los `UploadedFile::fake()` declaran el tipo por la extensión, no por el contenido).
 - **Manual de Convivencia y Ética**: `resources/js/content/politica/manual-convivencia.mdx`, compilado con `@mdx-js/rollup` (en `vite.config.ts`, con `enforce: 'pre'` antes del plugin de React) y estilizado con `components/mdx-components.tsx`. El índice lateral sale de `lib/constants/manual-sections.ts`; `tests/Unit/ManualSectionsTest.php` verifica que coincida con las secciones del `.mdx`.
 
 ## Analíticas y páginas de ejemplo (fase 5)
@@ -92,6 +92,17 @@ Errores que la app puede devolver y cuándo: **403** (miembro en ruta de admin),
 - **Cableado** en `bootstrap/app.php` (`$exceptions->respond(...)`): para esos códigos devuelve la página de Inertia con el código correcto, `Cache-Control: private, no-store` y conserva `Retry-After`. Excepciones: el **500 con `APP_DEBUG=true`** muestra el detalle técnico de Laravel (desarrollo), y los clientes que piden JSON (no Inertia) reciben JSON.
 - **Respaldo en HTML puro**: `resources/views/errors/{403,404,405,413,419,429,500,503}.blade.php` + `layout.blade.php`, con estilos en línea (no dependen de Vite, sesión ni base). Se usan si la página de React no se puede renderizar (el `respond` captura la falla y devuelve la respuesta original de Laravel, que usa estas vistas) — probado en `ErrorPagesTest`. Mantener sus textos iguales a `lib/errors.ts`. Se extienden con `@extends('errors.layout')` (no `errors::`, ese prefijo solo existe mientras Laravel renderiza un error).
 
+## Seguridad (auditoría, fase 5.2)
+
+Informe completo y decisiones pendientes: `docs/auditoria-2026-10-07.md`. Lo que hay que saber al tocar el código:
+
+- **IP del visitante para límites de intentos**: `App\Support\ClientIp` (última IP de `X-Forwarded-For`, la que agrega el proxy de Hostinger). **No usar `trustProxies('*')`** ni `$request->ip()` para eso: con el proxy delante, `ip()` sería la del proxy (límite global) y `trustProxies('*')` devuelve la primera IP de la cabecera, que el visitante puede inventar. Pendiente verificar el formato real en producción.
+- **Videos**: solo YouTube/Vimeo (`App\Rules\VideoUrl`, por dominio exacto) en canciones, rodas y cantorias; en el navegador `toEmbedUrl()` arma siempre la URL del reproductor desde el ID y devuelve `''` si no reconoce la URL (nunca embebe la URL tal cual).
+- **Cabeceras**: `SecurityHeaders` (middleware global) agrega `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS por https. No hay CSP todavía (decisión pendiente).
+- **https detrás del proxy**: en producción, si `APP_URL` es https, `AppServiceProvider` fuerza `URL::forceScheme('https')`.
+- **Sesión**: 7 días (`SESSION_LIFETIME=10080`, como el sitio anterior); en producción `SESSION_SECURE_COOKIE=true`. Valores obligatorios de producción: al final de `.env.example`.
+- **Dependencias**: `npm audit` y `composer audit` en 0. Hay `overrides` en `package.json` para forzar versiones parcheadas de `shell-quote` y `@babel/core`, y `vite` es un alias de `@voidzero-dev/vite-plus-core` (lo exige `vite-plus` ≥ 0.3.3; no cambiarlo por `vite` a secas).
+
 ## Desarrollo local
 
 - PHP 8.3 (el PHP de XAMPP se actualizó a 8.3.35; respaldo del 8.2 en `C:\xampp\php-8.2.12-respaldo`), Composer 2.10, Node 22, MySQL de XAMPP.
@@ -105,11 +116,11 @@ Sin excepción (ni para commits "solo de docs"):
 1. `php artisan test` (feature + unit; necesita MySQL local corriendo).
 2. `npm run types:check` y `npm run build`.
 3. `vendor/bin/pint --parallel` (formato PHP) y `vendor/bin/phpstan analyse` (análisis estático).
+4. `npm run check` (linter estricto + formato del frontend; `npm run check:fix` corrige el formato).
 
 Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de comitear. Nunca comitear credenciales: el repo es **público** (`.env` está en `.gitignore`; revisar `git diff --cached --name-only` antes de comitear).
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error.
-- ⏳ Fase 5.2 (auditoría de calidad y seguridad).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; quedan decisiones pendientes del usuario, la más importante el "olvidé mi contraseña").
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.

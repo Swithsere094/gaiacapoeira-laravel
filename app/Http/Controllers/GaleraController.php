@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cantoria;
 use App\Models\Roda;
+use App\Rules\VideoUrl;
 use App\Services\YouTubePlaylist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,14 +32,13 @@ class GaleraController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'video_url' => ['required', 'url:http,https', 'max:2000'],
+            'video_url' => ['required', 'max:2000', new VideoUrl],
             'description' => ['nullable', 'string', 'max:5000'],
             'location' => ['nullable', 'string', 'max:255'],
             'event_date' => ['nullable', 'date_format:Y-m-d'],
         ], [
             'title.required' => 'Título y URL de video son obligatorios',
             'video_url.required' => 'Título y URL de video son obligatorios',
-            'video_url.url' => 'La URL del video no es válida',
         ]);
 
         Roda::create([...$this->nullIfEmpty($data, ['description', 'location', 'event_date']), 'views' => 0]);
@@ -57,12 +57,11 @@ class GaleraController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'video_url' => ['nullable', 'url:http,https', 'max:2000'],
+            'video_url' => ['nullable', 'max:2000', new VideoUrl],
             'description' => ['nullable', 'string', 'max:5000'],
             'event_date' => ['nullable', 'date_format:Y-m-d'],
         ], [
             'title.required' => 'El título es obligatorio',
-            'video_url.url' => 'La URL del video no es válida',
         ]);
 
         Cantoria::create($this->nullIfEmpty($data, ['video_url', 'description', 'event_date']));

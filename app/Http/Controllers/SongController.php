@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Song;
+use App\Rules\VideoUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -64,7 +65,7 @@ class SongController extends Controller
             'lyrics' => ['required', 'string', 'max:20000'],
             'translation' => ['nullable', 'string', 'max:20000'],
             'context' => ['nullable', 'string', 'max:20000'],
-            'video_url' => ['nullable', 'url:http,https', 'max:2000'],
+            'video_url' => ['nullable', 'max:2000', new VideoUrl],
             'mestre' => ['nullable', 'string', 'max:255'],
             'tags' => ['nullable', 'array', 'max:20'],
             'tags.*' => ['string', 'max:100'],
@@ -73,7 +74,6 @@ class SongController extends Controller
             'type.required' => 'Título, tipo y letra son obligatorios',
             'lyrics.required' => 'Título, tipo y letra son obligatorios',
             'type.in' => 'Tipo de canción inválido',
-            'video_url.url' => 'La URL del video no es válida',
         ]);
 
         foreach (['translation', 'context', 'video_url', 'mestre'] as $key) {

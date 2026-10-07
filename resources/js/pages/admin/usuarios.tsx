@@ -1,14 +1,38 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle, Copy, Eye, EyeOff, Loader2, Pencil, Plus, ShieldCheck, Shuffle, Trash2, User, Users } from 'lucide-react';
+import {
+    CheckCircle,
+    Copy,
+    Eye,
+    EyeOff,
+    Loader2,
+    Pencil,
+    Plus,
+    ShieldCheck,
+    Shuffle,
+    Trash2,
+    User,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import type { AppUser } from '@/types';
@@ -113,7 +137,10 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
             ...(d.password ? { password: d.password } : {}),
         }));
 
-        const options = { preserveScroll: true, onSuccess: () => setDialogOpen(false) };
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => setDialogOpen(false),
+        };
 
         if (editingUser) {
             form.put(`/admin/usuarios/${editingUser.id}`, options);
@@ -135,7 +162,8 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
 
         router.delete(`/admin/usuarios/${u.id}`, {
             preserveScroll: true,
-            onError: (errors) => alert(errors.user ?? 'No se pudo eliminar el usuario.'),
+            onError: (errors) =>
+                alert(errors.user ?? 'No se pudo eliminar el usuario.'),
         });
     };
 
@@ -154,7 +182,9 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                 <Users className="h-8 w-8 text-primary" />
                                 Gestión de Usuarios
                             </h1>
-                            <p className="mt-1 text-muted-foreground">Crea, edita y elimina los usuarios del grupo</p>
+                            <p className="mt-1 text-muted-foreground">
+                                Crea, edita y elimina los usuarios del grupo
+                            </p>
                         </div>
                         <Button onClick={openAdd} className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -164,7 +194,10 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
 
                     <div className="space-y-3">
                         {users.map((u) => (
-                            <div key={u.id} className="flex items-center gap-4 rounded-xl bg-card p-5">
+                            <div
+                                key={u.id}
+                                className="flex items-center gap-4 rounded-xl bg-card p-5"
+                            >
                                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/20">
                                     {u.role === 'admin' ? (
                                         <ShieldCheck className="h-6 w-6 text-primary" />
@@ -175,12 +208,27 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
 
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-serif font-bold text-foreground">{u.name}</span>
-                                        {u.apodo && <span className="text-sm text-muted-foreground italic">«{u.apodo}»</span>}
-                                        <span className={cn('rounded px-2 py-0.5 text-xs font-medium', roleColors[u.role])}>
+                                        <span className="font-serif font-bold text-foreground">
+                                            {u.name}
+                                        </span>
+                                        {u.apodo && (
+                                            <span className="text-sm text-muted-foreground italic">
+                                                «{u.apodo}»
+                                            </span>
+                                        )}
+                                        <span
+                                            className={cn(
+                                                'rounded px-2 py-0.5 text-xs font-medium',
+                                                roleColors[u.role],
+                                            )}
+                                        >
                                             {roleLabels[u.role]}
                                         </span>
-                                        {u.id === user.id && <span className="text-xs text-muted-foreground">(tú)</span>}
+                                        {u.id === user.id && (
+                                            <span className="text-xs text-muted-foreground">
+                                                (tú)
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-sm text-muted-foreground">
                                         @{u.username}
@@ -219,7 +267,9 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="font-serif text-xl">{editingUser ? 'Editar usuario' : 'Nuevo usuario'}</DialogTitle>
+                        <DialogTitle className="font-serif text-xl">
+                            {editingUser ? 'Editar usuario' : 'Nuevo usuario'}
+                        </DialogTitle>
                     </DialogHeader>
 
                     <form onSubmit={handleSave} className="mt-2 space-y-4">
@@ -229,7 +279,14 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                 <Input
                                     id="username"
                                     value={form.data.username}
-                                    onChange={(e) => form.setData('username', e.target.value.toLowerCase().replace(/\s/g, ''))}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'username',
+                                            e.target.value
+                                                .toLowerCase()
+                                                .replace(/\s/g, ''),
+                                        )
+                                    }
                                     required
                                     disabled={form.processing}
                                     placeholder="sin espacios, ej: mariabatizado"
@@ -242,7 +299,9 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                             <Input
                                 id="name"
                                 value={form.data.name}
-                                onChange={(e) => form.setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('name', e.target.value)
+                                }
                                 required
                                 disabled={form.processing}
                                 placeholder="Ej: María García"
@@ -254,7 +313,9 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                             <Input
                                 id="apodo"
                                 value={form.data.apodo}
-                                onChange={(e) => form.setData('apodo', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('apodo', e.target.value)
+                                }
                                 disabled={form.processing}
                                 placeholder="Ej: Mariposa do Mar"
                             />
@@ -266,7 +327,9 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                 id="email"
                                 type="email"
                                 value={form.data.email}
-                                onChange={(e) => form.setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('email', e.target.value)
+                                }
                                 disabled={form.processing}
                                 placeholder="maria@ejemplo.com"
                             />
@@ -276,28 +339,43 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                             <Label htmlFor="role">Rol *</Label>
                             <Select
                                 value={form.data.role}
-                                onValueChange={(v: 'admin' | 'member') => form.setData('role', v)}
+                                onValueChange={(v: 'admin' | 'member') =>
+                                    form.setData('role', v)
+                                }
                                 disabled={form.processing}
                             >
                                 <SelectTrigger id="role">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="member">Miembro</SelectItem>
-                                    <SelectItem value="admin">Administrador</SelectItem>
+                                    <SelectItem value="member">
+                                        Miembro
+                                    </SelectItem>
+                                    <SelectItem value="admin">
+                                        Administrador
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Contraseña {editingUser ? '(dejar en blanco para no cambiar)' : '*'}</Label>
+                                <Label htmlFor="password">
+                                    Contraseña{' '}
+                                    {editingUser
+                                        ? '(dejar en blanco para no cambiar)'
+                                        : '*'}
+                                </Label>
                                 <button
                                     type="button"
                                     disabled={form.processing}
                                     onClick={() => {
                                         const p = generatePassword();
-                                        form.setData((d) => ({ ...d, password: p, passwordConfirm: p }));
+                                        form.setData((d) => ({
+                                            ...d,
+                                            password: p,
+                                            passwordConfirm: p,
+                                        }));
                                         setShowPassword(true);
                                         setCopiedPassword(false);
                                     }}
@@ -312,9 +390,16 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                 <div className="relative flex-1">
                                     <Input
                                         id="password"
-                                        type={showPassword ? 'text' : 'password'}
+                                        type={
+                                            showPassword ? 'text' : 'password'
+                                        }
                                         value={form.data.password}
-                                        onChange={(e) => form.setData('password', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'password',
+                                                e.target.value,
+                                            )
+                                        }
                                         disabled={form.processing}
                                         placeholder="Mínimo 6 caracteres"
                                         required={!editingUser}
@@ -323,12 +408,22 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword((v) => !v)}
+                                        onClick={() =>
+                                            setShowPassword((v) => !v)
+                                        }
                                         className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                        aria-label={
+                                            showPassword
+                                                ? 'Ocultar contraseña'
+                                                : 'Mostrar contraseña'
+                                        }
                                         tabIndex={-1}
                                     >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4" />
+                                        ) : (
+                                            <Eye className="h-4 w-4" />
+                                        )}
                                     </button>
                                 </div>
 
@@ -336,32 +431,51 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                     <button
                                         type="button"
                                         onClick={async () => {
-                                            await navigator.clipboard.writeText(form.data.password);
+                                            await navigator.clipboard.writeText(
+                                                form.data.password,
+                                            );
                                             setCopiedPassword(true);
-                                            setTimeout(() => setCopiedPassword(false), 2000);
+                                            setTimeout(
+                                                () => setCopiedPassword(false),
+                                                2000,
+                                            );
                                         }}
                                         className="rounded-md border border-border px-3 text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                                         title="Copiar contraseña"
                                         aria-label="Copiar contraseña"
                                     >
-                                        {copiedPassword ? <CheckCircle className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                                        {copiedPassword ? (
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                        ) : (
+                                            <Copy className="h-4 w-4" />
+                                        )}
                                     </button>
                                 )}
                             </div>
 
                             {form.data.password && showPassword && (
-                                <p className="text-xs text-muted-foreground">Copia y comparte esta contraseña con el usuario antes de cerrar.</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Copia y comparte esta contraseña con el
+                                    usuario antes de cerrar.
+                                </p>
                             )}
                         </div>
 
                         {form.data.password && (
                             <div className="space-y-2">
-                                <Label htmlFor="passwordConfirm">Confirmar contraseña *</Label>
+                                <Label htmlFor="passwordConfirm">
+                                    Confirmar contraseña *
+                                </Label>
                                 <Input
                                     id="passwordConfirm"
                                     type="password"
                                     value={form.data.passwordConfirm}
-                                    onChange={(e) => form.setData('passwordConfirm', e.target.value)}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'passwordConfirm',
+                                            e.target.value,
+                                        )
+                                    }
                                     disabled={form.processing}
                                     placeholder="Repite la contraseña"
                                     autoComplete="new-password"
@@ -370,13 +484,21 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                         )}
 
                         {formError && (
-                            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                            <p
+                                role="alert"
+                                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                            >
                                 {formError}
                             </p>
                         )}
 
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)} disabled={form.processing}>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setDialogOpen(false)}
+                                disabled={form.processing}
+                            >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={form.processing}>
