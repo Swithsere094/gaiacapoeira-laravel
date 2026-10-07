@@ -1,0 +1,212 @@
+# Tests en cada push / PR y, si pasan en main, publicación en Hostinger.
+#
+# Publicación (job "deploy"): el servidor no tiene Node, así que todo se
+# compila acá (vendor sin dev + assets de Vite) y se sube ya listo por rsync
+# a $DEPLOY_PATH/releases/<versión>. Ahí se enlaza con lo compartido
+# (shared/.env y shared/storage, que sobreviven entre versiones), se corren
+# las migraciones y se activa moviendo el enlace `current`. Si después del
+# cambio el sitio no responde, se vuelve solo a la versión anterior.
+# Ver "Publicación (fase 6)" en CLAUDE.md.
+
+name: ci-deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    # Misma base que producción (MariaDB 11.8 en Hostinger). Los tests usan
+    # capoeira_laravel_test (phpunit.xml); root sin contraseña, como en local.
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: capoeira_laravel_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          cp .env.example .env
+          php artisan key:generate
+          npm ci
+
+      # Los mismos chequeos obligatorios antes de cada commit (CLAUDE.md).
+      - name: Formato y lint (frontend)
+        run: npm run check
+      - name: Tipos (TypeScript)
+        run: npm run types:check
+      - name: Build
+        run: npm run build
+      - name: Formato (PHP)
+        run: vendor/bin/pint --parallel --test
+      - name: Análisis estático (PHP)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+      - name: Tests
+        run: php artisan test
+
+  deploy:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Nunca dos publicaciones a la vez; una nueva espera a la anterior.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      SITE_URL: https://nuevo.gaiacapoeira.com
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Compilar
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+          cp .env.example .env
+          npm ci
+          npm run build
+          rm .env
+
+      # Detrás de la IP de Hostinger responden DOS servidores SSH y solo uno
+      # acepta la llave (el otro da "Permission denied"): se reintenta hasta
+      # caer en el bueno y se deja esa conexión abierta (ControlMaster) para
+      # que todos los pasos siguientes la reutilicen.
+      - name: Conectar por SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host hostinger
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ControlPath ~/.ssh/cm-%r@%h:%p
+          EOF
+          for i in $(seq 1 15); do
+            if ssh -fNM hostinger 2>/dev/null && ssh -O check hostinger 2>/dev/null; then
+              echo "Conectado (intento $i)"; exit 0
+            fi
+            sleep 2
+          done
+          echo "No se pudo conectar por SSH tras 15 intentos" >&2; exit 1
+
+      - name: Subir versión
+        run: |
+          RELEASE="$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+          echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+          ssh hostinger "mkdir -p '$DEPLOY_PATH/releases/$RELEASE'"
+          # --link-dest: lo que no cambió respecto a la versión activa se
+          # enlaza en el servidor en vez de volver a subirse (vendor, imágenes).
+          rsync -az --delete \
+            --link-dest="$DEPLOY_PATH/current/" \
+            --exclude='/.git' --exclude='/.github' --exclude='/node_modules' \
+            --exclude='/tests' --exclude='/storage' --exclude='/.env' \
+            --exclude='/public/hot' --exclude='/docs' \
+            ./ "hostinger:$DEPLOY_PATH/releases/$RELEASE/"
+
+      - name: Activar versión
+        run: |
+          ssh hostinger "DEPLOY_PATH='$DEPLOY_PATH' RELEASE='$RELEASE' SITE_URL='$SITE_URL' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          NEW="$DEPLOY_PATH/releases/$RELEASE"
+          PREV="$(readlink current || true)"
+
+          # Lo compartido entre versiones.
+          ln -sfn "$DEPLOY_PATH/shared/.env" "$NEW/.env"
+          ln -sfn "$DEPLOY_PATH/shared/storage" "$NEW/storage"
+
+          cd "$NEW"
+          php artisan migrate --force --no-interaction
+          php artisan optimize
+
+          # Cambio atómico del enlace: el sitio pasa a la versión nueva de una.
+          ln -sfn "$NEW" "$DEPLOY_PATH/current.tmp"
+          mv -Tf "$DEPLOY_PATH/current.tmp" "$DEPLOY_PATH/current"
+          echo "Activa: $RELEASE (antes: ${PREV:-ninguna})"
+
+          # Prueba de humo: el login tiene que responder 200. Si no, se vuelve
+          # a la versión anterior y la publicación queda marcada como fallida.
+          sleep 3
+          CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE_URL/auth/login" || true)"
+          if [ "$CODE" != "200" ]; then
+            echo "El sitio respondió $CODE: se vuelve a la versión anterior" >&2
+            if [ -n "$PREV" ]; then
+              ln -sfn "$PREV" "$DEPLOY_PATH/current.tmp"
+              mv -Tf "$DEPLOY_PATH/current.tmp" "$DEPLOY_PATH/current"
+            fi
+            exit 1
+          fi
+          echo "Sitio OK ($CODE)"
+
+          # Se guardan las 5 versiones más recientes (para volver atrás a mano).
+          ACTIVE="$(readlink "$DEPLOY_PATH/current")"
+          for old in $(ls -1dt "$DEPLOY_PATH"/releases/*/ | tail -n +6); do
+            if [ "${old%/}" != "$ACTIVE" ]; then rm -rf "$old"; fi
+          done
+          REMOTE
+
+      - name: Cerrar conexión SSH
+        if: always()
+        run: ssh -O exit hostinger 2>/dev/null || true
