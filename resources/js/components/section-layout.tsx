@@ -1,3 +1,4 @@
+import { Head } from "@inertiajs/react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { type ReactNode } from "react"
@@ -11,6 +12,7 @@ interface SectionLayoutProps {
 export function SectionLayout({ children, title, description }: SectionLayoutProps) {
   return (
     <main className="min-h-screen">
+      <Head title={title} />
       <Navigation />
       <div className="pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

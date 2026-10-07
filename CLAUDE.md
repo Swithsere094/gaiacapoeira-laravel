@@ -16,7 +16,7 @@ Quien mantiene este repo no programa: trabaja exclusivamente a través de Claude
 
 - **Laravel 13** (PHP 8.3) + **Inertia 3** + **React 19** + TypeScript + **Tailwind 4** + shadcn/ui (estilo new-york). Generado desde el kit oficial `laravel/react-starter-kit` y recortado (ver "Qué se quitó del kit").
 - **MySQL/MariaDB** con Eloquent. **npm** como gestor de paquetes (no pnpm).
-- **Vite (vite-plus)** para el frontend; **Wayfinder** genera rutas tipadas en `resources/js/actions|routes|wayfinder` (generado, en `.gitignore`; si `tsc` se queja de esos archivos: `php artisan wayfinder:generate --with-form`).
+- **Vite (vite-plus)** para el frontend. Las páginas usan URLs simples (como el sitio anterior); **Wayfinder** (rutas tipadas del kit) se quitó porque no se usaba y su generador chocaba con `Route::redirect` (método HTTP `QUERY` de Laravel 13 que sus tipos TS no conocen).
 - Único tema oscuro (paleta azul profundo `#02141B` + dorado `#AF9A4F`), tipografías Bitter (títulos, `font-serif`) e Inter (texto, `font-sans`), servidas localmente vía `laravel-vite-plugin/fonts` (bunny).
 
 ## Base de datos
@@ -50,7 +50,7 @@ La base de producción ya tiene **13 tablas con datos reales**, creadas por driz
 
 ### Qué se quitó del kit (a propósito)
 
-Fortify, registro público, verificación de email, 2FA, passkeys, páginas de ajustes, modo claro/oscuro, sidebar y `laravel/chisel`. El sitio no tiene nada de eso; si algún día se quiere alguna, se agrega de forma explícita.
+Fortify, registro público, verificación de email, 2FA, passkeys, páginas de ajustes, modo claro/oscuro, sidebar, Wayfinder y `laravel/chisel`. El sitio no tiene nada de eso; si algún día se quiere alguna, se agrega de forma explícita.
 
 ## Frontend
 
@@ -62,6 +62,13 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 - Formularios: `useForm` / `router` de Inertia (CSRF automático). Nada de `fetch` a mano contra rutas que modifican datos.
 - Lista de cordas: la UI usa `lib/constants/cordas.ts`; el servidor valida contra `App\Support\Cordas::IDS`. `tests/Unit/CordasTest.php` verifica que ambas listas y los PNG de `public/Cuerda x cuerda/` coincidan.
 - Gotcha heredado de los PNG de cordas: mucho margen transparente y el dibujo descentrado hacia arriba → `style={{ transform: "translateY(9.6%) scale(1.8)" }}` con `translateY` **primero** (si se invierte el orden, el scale amplifica el translate).
+
+## Contenido (fase 3)
+
+- **Sabiá cantou** (`SongController`, página `canciones`): ver/crear/editar → cualquier sesión; borrar → admin. `nossa`: al crear la marca cualquiera; al editar solo un admin la cambia (si la manda un miembro se ignora). Los ritmos van en `tags` (lista JSON).
+- **Galera** (`GaleraController`, página `galera`, pestañas `?tab=rodas|cantorias`): agregar/eliminar rodas y cantorias y sincronizar con YouTube → solo admin. `/rodas` redirige a `/galera`.
+- **Sincronización con YouTube** (`App\Services\YouTubePlaylist`): recorre todas las páginas de la playlist, saltea los videos ya guardados (comparando el ID de 11 caracteres extraído de `video_url`, `App\Support\VideoUrl`) y los privados/eliminados (sin miniaturas). Variables: `YOUTUBE_API_KEY`, `YOUTUBE_PLAYLIST_ID` (rodas), `YOUTUBE_CANTORIAS_PLAYLIST_ID`. Sigue siendo **manual** (decisión de producto heredada: se descartó el cron). En tests se simula con `Http::fake`.
+- El resultado de acciones como la sincronización llega como flash `success` / `error`.
 
 ## Desarrollo local
 
@@ -81,6 +88,6 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios.
-- ⏳ Fases 3 (canciones, rodas, cantorias, galera, YouTube), 4 (política, cordas, manual), 5 (analíticas, páginas de ejemplo), 5.1 (páginas de error), 5.2 (auditoría).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube.
+- ⏳ Fases 4 (política, cordas, manual), 5 (analíticas, páginas de ejemplo), 5.1 (páginas de error), 5.2 (auditoría).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.
