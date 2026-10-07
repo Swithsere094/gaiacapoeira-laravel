@@ -8,7 +8,6 @@ declare module '@inertiajs/core' {
             flash: {
                 success?: string | null;
                 error?: string | null;
-                tempPassword?: string | null;
             };
             [key: string]: unknown;
         };

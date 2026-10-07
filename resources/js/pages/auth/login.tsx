@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Lock, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -108,14 +108,12 @@ export default function Login() {
                             {form.processing ? 'Entrando...' : 'Entrar'}
                         </Button>
 
-                        <div className="text-center">
-                            <Link
-                                href="/auth/olvide-contrasena"
-                                className="text-sm text-muted-foreground transition-colors hover:text-primary"
-                            >
-                                ¿Olvidaste tu contraseña?
-                            </Link>
-                        </div>
+                        {/* Sin autoservicio a propósito (auditoría P1): el anterior
+                            permitía tomar cuentas conociendo usuario y email. */}
+                        <p className="text-center text-sm text-muted-foreground">
+                            ¿Olvidaste tu contraseña? Pídele a un administrador
+                            del grupo que te asigne una nueva.
+                        </p>
                     </form>
                 </CardContent>
             </Card>

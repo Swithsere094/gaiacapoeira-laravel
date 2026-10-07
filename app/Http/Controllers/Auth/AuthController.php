@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Support\ClientIp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,28 +13,24 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Login, logout y "olvidé mi contraseña". Mismo comportamiento que el sitio
- * Next (ver CLAUDE.md, sección Auth): login por username, sin registro
- * público (los usuarios los crea un admin) y sin "recordarme".
+ * Login y logout. Login por username, sin registro público (los usuarios los
+ * crea un admin) y sin "recordarme", como el sitio anterior.
  *
- * Los límites de intentos van por IP y cuentan cada intento, como antes.
- * A diferencia del sitio anterior (un Map en memoria que se perdía en cada
- * reinicio) el contador vive en la caché de Laravel (tabla `cache`), así que
- * sobrevive a reinicios y despliegues.
+ * No hay "olvidé mi contraseña" de autoservicio (decisión del 2026-10-07,
+ * auditoría P1): el del sitio anterior permitía tomar cualquier cuenta
+ * conociendo su usuario y email. Si alguien olvida su contraseña, un admin
+ * le asigna una nueva desde Gestión de Usuarios.
+ *
+ * El límite de intentos va por IP del visitante (App\Support\ClientIp) y
+ * cuenta cada intento. A diferencia del sitio anterior (un Map en memoria
+ * que se perdía en cada reinicio) el contador vive en la caché de Laravel
+ * (tabla `cache`), así que sobrevive a reinicios y despliegues.
  */
 class AuthController extends Controller
 {
     private const LOGIN_LIMIT = 10;
 
-    private const RESET_LIMIT = 5;
-
     private const WINDOW_SECONDS = 15 * 60;
-
-    /**
-     * Caracteres de la contraseña temporal: sin los que se confunden al
-     * leerlos (0/O, 1/l/I).
-     */
-    private const TEMP_PASSWORD_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
 
     public function showLogin(): Response
     {
@@ -44,7 +39,7 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $this->throttle('login:'.ClientIp::for($request), self::LOGIN_LIMIT, 'username');
+        $this->throttle('login:'.ClientIp::for($request));
 
         $credentials = $request->validate([
             'username' => ['required', 'string', 'max:255'],
@@ -74,67 +69,16 @@ class AuthController extends Controller
         return redirect('/auth/login');
     }
 
-    public function showForgotPassword(): Response
+    private function throttle(string $key): void
     {
-        return Inertia::render('auth/olvide-contrasena');
-    }
-
-    /**
-     * Si usuario + email coinciden, genera una contraseña temporal, la guarda
-     * hasheada y la muestra una sola vez (flash de sesión).
-     */
-    public function resetPassword(Request $request): RedirectResponse
-    {
-        // Más estricto que login: un intento exitoso entrega una contraseña.
-        $this->throttle('olvide:'.ClientIp::for($request), self::RESET_LIMIT, 'username');
-
-        $data = $request->validate([
-            'username' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'max:255'],
-        ], [
-            'username.required' => 'Usuario y email son obligatorios',
-            'email.required' => 'Usuario y email son obligatorios',
-        ]);
-
-        $user = User::where('username', mb_strtolower(trim($data['username'])))
-            ->where('email', mb_strtolower(trim($data['email'])))
-            ->first();
-
-        if (! $user) {
-            throw ValidationException::withMessages([
-                'username' => 'No encontramos un usuario con ese nombre y email. Verifica los datos o contacta al administrador.',
-            ]);
-        }
-
-        $tempPassword = $this->generateTempPassword();
-        $user->update(['password_hash' => $tempPassword]);
-
-        return back()->with('tempPassword', $tempPassword);
-    }
-
-    private function throttle(string $key, int $limit, string $errorField): void
-    {
-        if (RateLimiter::tooManyAttempts($key, $limit)) {
+        if (RateLimiter::tooManyAttempts($key, self::LOGIN_LIMIT)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
 
             throw ValidationException::withMessages([
-                $errorField => "Demasiados intentos. Probá de nuevo en {$minutes} minuto(s).",
+                'username' => "Demasiados intentos. Probá de nuevo en {$minutes} minuto(s).",
             ])->status(429);
         }
 
         RateLimiter::hit($key, self::WINDOW_SECONDS);
-    }
-
-    private function generateTempPassword(): string
-    {
-        $chars = self::TEMP_PASSWORD_CHARS;
-        $max = strlen($chars) - 1;
-        $password = '';
-
-        for ($i = 0; $i < 10; $i++) {
-            $password .= $chars[random_int(0, $max)];
-        }
-
-        return $password;
     }
 }

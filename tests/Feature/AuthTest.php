@@ -21,12 +21,10 @@ class AuthTest extends TestCase
         $this->get('/')->assertRedirect('/auth/login');
     }
 
-    public function test_las_paginas_de_auth_son_publicas(): void
+    public function test_el_login_es_publico(): void
     {
         $this->get('/auth/login')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('auth/login'));
-        $this->get('/auth/olvide-contrasena')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('auth/olvide-contrasena'));
     }
 
     public function test_todas_las_respuestas_llevan_cache_control_private_no_store(): void
@@ -116,44 +114,19 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
-    // ── Olvidé mi contraseña ────────────────────────────────────────
+    // ── Sin "olvidé mi contraseña" (auditoría P1) ───────────────────
 
-    public function test_olvide_contrasena_genera_una_clave_temporal_que_sirve_para_entrar(): void
+    public function test_la_direccion_vieja_de_olvide_contrasena_lleva_al_login(): void
     {
-        $user = User::factory()->create(['username' => 'aluno', 'email' => 'aluno@gaia.com', 'password_hash' => 'vieja123']);
-
-        $this->from('/auth/olvide-contrasena')
-            ->post('/auth/olvide-contrasena', ['username' => ' Aluno ', 'email' => 'ALUNO@gaia.com'])
-            ->assertRedirect('/auth/olvide-contrasena')
-            ->assertSessionHas('tempPassword');
-
-        $temp = session('tempPassword');
-        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Za-km-np-z2-9]{10}$/', $temp);
-        $this->assertTrue(Hash::check($temp, $user->fresh()->password_hash));
-        $this->assertFalse(Hash::check('vieja123', $user->fresh()->password_hash));
+        $this->get('/auth/olvide-contrasena')->assertRedirect('/auth/login');
     }
 
-    public function test_olvide_contrasena_con_datos_que_no_coinciden_no_cambia_nada(): void
+    public function test_nadie_puede_cambiar_una_contrasena_sin_sesion(): void
     {
         $user = User::factory()->create(['username' => 'aluno', 'email' => 'aluno@gaia.com', 'password_hash' => 'vieja123']);
 
-        $this->post('/auth/olvide-contrasena', ['username' => 'aluno', 'email' => 'otro@gaia.com'])
-            ->assertSessionHasErrors('username')
-            ->assertSessionMissing('tempPassword');
-
-        $this->assertTrue(Hash::check('vieja123', $user->fresh()->password_hash));
-    }
-
-    public function test_olvide_contrasena_bloquea_despues_de_5_intentos_por_ip(): void
-    {
-        $user = User::factory()->create(['username' => 'aluno', 'email' => 'aluno@gaia.com', 'password_hash' => 'vieja123']);
-
-        for ($i = 0; $i < 5; $i++) {
-            $this->post('/auth/olvide-contrasena', ['username' => 'aluno', 'email' => 'mal@gaia.com']);
-        }
-
+        // Lo que hacía el formulario anterior ya no hace nada.
         $this->post('/auth/olvide-contrasena', ['username' => 'aluno', 'email' => 'aluno@gaia.com'])
-            ->assertSessionHasErrors('username')
             ->assertSessionMissing('tempPassword');
 
         $this->assertTrue(Hash::check('vieja123', $user->fresh()->password_hash));
