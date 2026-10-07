@@ -3,48 +3,58 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Laravel\Fortify\Contracts\PasskeyUser;
-use Laravel\Fortify\PasskeyAuthenticatable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
- * @property int $id
+ * Usuario del sitio. Tabla heredada `usuarios` (no la `users` estándar de
+ * Laravel): IDs UUID CHAR(36), login por `username` y la contraseña en
+ * `password_hash`. Los hashes heredados son bcrypt `$2b$` (bcryptjs) y
+ * `Hash::check` de Laravel los verifica sin conversión; al iniciar sesión
+ * Laravel los re-hashea solo si cambia el costo configurado.
+ *
+ * @property string $id
+ * @property string $username
+ * @property string $password_hash
  * @property string $name
- * @property string $email
- * @property Carbon|null $email_verified_at
- * @property string $password
- * @property string|null $two_factor_secret
- * @property string|null $two_factor_recovery_codes
- * @property Carbon|null $two_factor_confirmed_at
- * @property string|null $remember_token
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property string|null $email
+ * @property 'admin'|'member' $role
+ * @property string|null $apodo
+ * @property string|null $avatar
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasUuids;
+
+    protected $table = 'usuarios';
+
+    /** Columna donde Laravel lee y re-hashea la contraseña. */
+    protected $authPasswordName = 'password_hash';
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * La tabla no tiene `remember_token`: el sitio nunca tuvo "recordarme".
+     * Con el nombre vacío, Laravel no intenta leerlo ni escribirlo.
      */
+    protected $rememberTokenName = '';
+
+    protected $fillable = ['username', 'password_hash', 'name', 'email', 'role', 'apodo', 'avatar'];
+
+    protected $hidden = ['password_hash'];
+
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
+            'password_hash' => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }

@@ -12,9 +12,14 @@ export default defineConfig({
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
+            // Tipografías del sitio original: Bitter (títulos, font-serif) e
+            // Inter (texto, font-sans).
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Inter', {
+                    weights: [400, 500, 600, 700],
+                }),
+                bunny('Bitter', {
+                    weights: [400, 600, 700],
                 }),
             ],
         }),

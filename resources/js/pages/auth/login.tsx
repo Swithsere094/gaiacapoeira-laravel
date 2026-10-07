@@ -1,117 +1,104 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { Lock, User } from 'lucide-react';
+import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-import PasskeyVerify from '@/components/passkey-verify';
 
-type Props = {
-    status?: string;
-    canResetPassword: boolean;
-};
+export default function Login() {
+    const form = useForm({ username: '', password: '' });
+    const error = form.errors.username ?? form.errors.password;
 
-export default function Login({ status, canResetPassword }: Props) {
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        // Si la sesión había vencido, Laravel vuelve a la página que se
+        // intentó abrir (redirect()->intended), como el ?next= del sitio Next.
+        form.post('/auth/login', { onFinish: () => form.reset('password') });
+    };
+
     return (
-        <>
-            <Head title="Log in" />
+        <main className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Head title="Iniciar sesión" />
+            <Card className="w-full max-w-md border-border bg-card">
+                <CardHeader className="space-y-4 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
+                        <Lock className="h-8 w-8 text-primary" />
+                    </div>
+                    {/* CardTitle renderiza un <div>: la página necesita un <h1> real. */}
+                    <h1 className="font-serif text-2xl leading-none font-semibold text-foreground">Areia no Mar</h1>
+                    <CardDescription className="text-muted-foreground">
+                        Ingresa tus credenciales para acceder al repositorio
+                    </CardDescription>
+                </CardHeader>
 
-            <PasskeyVerify />
-
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-2">
+                            <Label htmlFor="username" className="text-foreground">
+                                Usuario
+                            </Label>
+                            <div className="relative">
+                                <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
+                                    id="username"
+                                    type="text"
+                                    autoComplete="username"
+                                    placeholder="tu-usuario"
+                                    value={form.data.username}
+                                    onChange={(e) => form.setData('username', e.target.value)}
+                                    className="border-border bg-input pl-9 text-foreground"
                                     required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
+                                    disabled={form.processing}
                                 />
-                                <InputError message={errors.email} />
                             </div>
+                        </div>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="text-foreground">
+                                Contraseña
+                            </Label>
+                            <div className="relative">
+                                <Lock className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
                                     id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
+                                    type="password"
                                     autoComplete="current-password"
-                                    placeholder="Password"
+                                    placeholder="••••••••"
+                                    value={form.data.password}
+                                    onChange={(e) => form.setData('password', e.target.value)}
+                                    className="border-border bg-input pl-9 text-foreground"
+                                    required
+                                    disabled={form.processing}
                                 />
-                                <InputError message={errors.password} />
                             </div>
+                        </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
+                        {error && (
+                            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+                                {error}
+                            </p>
+                        )}
 
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
+                        <Button
+                            type="submit"
+                            className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                            disabled={form.processing}
+                        >
+                            {form.processing ? 'Entrando...' : 'Entrar'}
+                        </Button>
+
+                        <div className="text-center">
+                            <Link
+                                href="/auth/olvide-contrasena"
+                                className="text-sm text-muted-foreground transition-colors hover:text-primary"
                             >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
+                                ¿Olvidaste tu contraseña?
+                            </Link>
                         </div>
-
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
-                        </div>
-                    </>
-                )}
-            </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
-        </>
+                    </form>
+                </CardContent>
+            </Card>
+        </main>
     );
 }
-
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};
