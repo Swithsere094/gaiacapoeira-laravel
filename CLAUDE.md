@@ -84,6 +84,14 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 - **Panel** `/admin/analytics` (`Admin\AnalyticsController`, solo admin): totales, usuarios distintos, top 15 páginas y visitas por día de los últimos 30 días. El agrupado por día se hace en PHP en UTC (no con `DATE()` de MySQL), por el gotcha de husos horarios.
 - **Artículos, movimientos y portugués** (`/articulos`, `/movimientos`, `/portugues`): páginas con contenido fijo de ejemplo, igual que en el sitio anterior. Sus tablas (`articles`, `movements`, `portuguese_*`) existen pero todavía no tienen backend.
 
+## Páginas de error (fase 5.1)
+
+Errores que la app puede devolver y cuándo: **403** (miembro en ruta de admin), **404** (ruta inexistente o registro borrado — route model binding), **405** (método equivocado, ej. GET `/auth/logout`), **413** (subida más grande que `post_max_size`), **419** (sesión/CSRF vencido), **429** (rutas con `throttle`), **500** (inesperado), **503** (`php artisan down`).
+
+- **Página propia en React**: `resources/js/pages/error.tsx` (tarjeta centrada como el login, textos en `resources/js/lib/errors.ts`). Es **autónoma**: no usa la navegación ni `auth` de las props compartidas, porque en un 404 de ruta inexistente Laravel responde sin abrir la sesión ni pasar por `HandleInertiaRequests`.
+- **Cableado** en `bootstrap/app.php` (`$exceptions->respond(...)`): para esos códigos devuelve la página de Inertia con el código correcto, `Cache-Control: private, no-store` y conserva `Retry-After`. Excepciones: el **500 con `APP_DEBUG=true`** muestra el detalle técnico de Laravel (desarrollo), y los clientes que piden JSON (no Inertia) reciben JSON.
+- **Respaldo en HTML puro**: `resources/views/errors/{403,404,405,413,419,429,500,503}.blade.php` + `layout.blade.php`, con estilos en línea (no dependen de Vite, sesión ni base). Se usan si la página de React no se puede renderizar (el `respond` captura la falla y devuelve la respuesta original de Laravel, que usa estas vistas) — probado en `ErrorPagesTest`. Mantener sus textos iguales a `lib/errors.ts`. Se extienden con `@extends('errors.layout')` (no `errors::`, ese prefijo solo existe mientras Laravel renderiza un error).
+
 ## Desarrollo local
 
 - PHP 8.3 (el PHP de XAMPP se actualizó a 8.3.35; respaldo del 8.2 en `C:\xampp\php-8.2.12-respaldo`), Composer 2.10, Node 22, MySQL de XAMPP.
@@ -102,6 +110,6 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo.
-- ⏳ Fases 5.1 (páginas de error), 5.2 (auditoría).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error.
+- ⏳ Fase 5.2 (auditoría de calidad y seguridad).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.
