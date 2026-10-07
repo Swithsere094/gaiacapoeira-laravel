@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\GaleraController;
@@ -42,6 +43,11 @@ Route::middleware('auth')->group(function () {
     Route::inertia('politica/cordas', 'politica/cordas')->name('politica.cordas');
     Route::inertia('politica/manual', 'politica/manual')->name('politica.manual');
 
+    // Páginas de ejemplo (contenido fijo, todavía sin base de datos).
+    Route::inertia('articulos', 'articulos')->name('articulos');
+    Route::inertia('movimientos', 'movimientos')->name('movimientos');
+    Route::inertia('portugues', 'portugues')->name('portugues');
+
     // ── Solo administradores ─────────────────────────────────────────
     Route::middleware('admin')->group(function () {
         Route::delete('canciones/{song}', [SongController::class, 'destroy']);
@@ -60,6 +66,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('politica/{politica}', [PoliticaController::class, 'destroy']);
 
         Route::prefix('admin')->group(function () {
+            Route::get('analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
             Route::get('usuarios', [UserController::class, 'index'])->name('admin.usuarios');
             Route::post('usuarios', [UserController::class, 'store']);
             Route::put('usuarios/{user}', [UserController::class, 'update']);

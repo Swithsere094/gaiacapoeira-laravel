@@ -78,6 +78,12 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 - En tests, `PoliticaTest` redirige `public_path()` a una carpeta temporal; para probar archivos disfrazados usa archivos reales en disco (los `UploadedFile::fake()` declaran el tipo por la extensión, no por el contenido).
 - **Manual de Convivencia y Ética**: `resources/js/content/politica/manual-convivencia.mdx`, compilado con `@mdx-js/rollup` (en `vite.config.ts`, con `enforce: 'pre'` antes del plugin de React) y estilizado con `components/mdx-components.tsx`. El índice lateral sale de `lib/constants/manual-sections.ts`; `tests/Unit/ManualSectionsTest.php` verifica que coincida con las secciones del `.mdx`.
 
+## Analíticas y páginas de ejemplo (fase 5)
+
+- **Registro de visitas en el servidor** (`App\Http\Middleware\TrackPageView`, en el grupo `web`): al entregar una página (GET 2xx, HTML o visita de Inertia) guarda `path` (sin query), `user_id` (o null sin sesión, ej. `/auth/login`) y `created_at`. No cuenta redirecciones, errores, acciones (POST/PUT/DELETE), recargas parciales de Inertia, prefetch ni `/up`. Si falla el insert, se reporta y la página igual responde. **Cambio deliberado respecto del sitio anterior**: allá lo hacía el navegador con un POST a un endpoint **público** (`/api/analytics/pageview`) que cualquiera podía llamar con rutas inventadas; ese endpoint ya no existe.
+- **Panel** `/admin/analytics` (`Admin\AnalyticsController`, solo admin): totales, usuarios distintos, top 15 páginas y visitas por día de los últimos 30 días. El agrupado por día se hace en PHP en UTC (no con `DATE()` de MySQL), por el gotcha de husos horarios.
+- **Artículos, movimientos y portugués** (`/articulos`, `/movimientos`, `/portugues`): páginas con contenido fijo de ejemplo, igual que en el sitio anterior. Sus tablas (`articles`, `movements`, `portuguese_*`) existen pero todavía no tienen backend.
+
 ## Desarrollo local
 
 - PHP 8.3 (el PHP de XAMPP se actualizó a 8.3.35; respaldo del 8.2 en `C:\xampp\php-8.2.12-respaldo`), Composer 2.10, Node 22, MySQL de XAMPP.
@@ -96,6 +102,6 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual.
-- ⏳ Fases 5 (analíticas, páginas de ejemplo), 5.1 (páginas de error), 5.2 (auditoría).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo.
+- ⏳ Fases 5.1 (páginas de error), 5.2 (auditoría).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.
