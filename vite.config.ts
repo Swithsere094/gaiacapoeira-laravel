@@ -1,4 +1,5 @@
 import inertia from '@inertiajs/vite';
+import mdx from '@mdx-js/rollup';
 import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
@@ -23,7 +24,10 @@ export default defineConfig({
             ],
         }),
         inertia(),
-        react(),
+        // Contenido en MDX (manual de convivencia). Tiene que correr antes
+        // que el plugin de React, que después procesa el JSX que genera.
+        { enforce: 'pre', ...mdx({ providerImportSource: '@mdx-js/react' }) },
+        react({ include: /\.(mdx|js|jsx|ts|tsx)$/ }),
         babel({
             presets: [reactCompilerPreset()],
         }),

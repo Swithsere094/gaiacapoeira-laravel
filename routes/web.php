@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\GaleraController;
+use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SongController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,11 @@ Route::middleware('auth')->group(function () {
     Route::get('galera', [GaleraController::class, 'index'])->name('galera');
     Route::redirect('rodas', '/galera');
 
+    // Política: documentos, sistema de cordas y manual de convivencia.
+    Route::get('politica', [PoliticaController::class, 'index'])->name('politica');
+    Route::inertia('politica/cordas', 'politica/cordas')->name('politica.cordas');
+    Route::inertia('politica/manual', 'politica/manual')->name('politica.manual');
+
     // ── Solo administradores ─────────────────────────────────────────
     Route::middleware('admin')->group(function () {
         Route::delete('canciones/{song}', [SongController::class, 'destroy']);
@@ -46,6 +52,12 @@ Route::middleware('auth')->group(function () {
         Route::post('galera/cantorias', [GaleraController::class, 'storeCantoria']);
         Route::delete('galera/cantorias/{cantoria}', [GaleraController::class, 'destroyCantoria']);
         Route::post('galera/cantorias/sync', [GaleraController::class, 'syncCantorias'])->middleware('throttle:6,1');
+
+        // Con archivo adjunto: el formulario manda POST + _method=PUT
+        // (PHP no interpreta multipart en un PUT real).
+        Route::post('politica', [PoliticaController::class, 'store']);
+        Route::put('politica/{politica}', [PoliticaController::class, 'update']);
+        Route::delete('politica/{politica}', [PoliticaController::class, 'destroy']);
 
         Route::prefix('admin')->group(function () {
             Route::get('usuarios', [UserController::class, 'index'])->name('admin.usuarios');

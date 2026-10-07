@@ -70,6 +70,14 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 - **Sincronización con YouTube** (`App\Services\YouTubePlaylist`): recorre todas las páginas de la playlist, saltea los videos ya guardados (comparando el ID de 11 caracteres extraído de `video_url`, `App\Support\VideoUrl`) y los privados/eliminados (sin miniaturas). Variables: `YOUTUBE_API_KEY`, `YOUTUBE_PLAYLIST_ID` (rodas), `YOUTUBE_CANTORIAS_PLAYLIST_ID`. Sigue siendo **manual** (decisión de producto heredada: se descartó el cron). En tests se simula con `Http::fake`.
 - El resultado de acciones como la sincronización llega como flash `success` / `error`.
 
+## Política (fase 4)
+
+- **Documentos** (`PoliticaController`, página `politica`): ver → cualquier sesión; crear/editar/eliminar → admin. Categorías fijas (`PoliticaController::CATEGORIES`). Las tarjetas de "Manual de Convivencia" y "Cordas y Graduación" abren las páginas propias (`/politica/manual`, `/politica/cordas`), no un archivo.
+- **Archivos subidos** (`App\Support\Uploads`): se guardan en `public/uploads/<carpeta>/` como `<ms>_<nombre_seguro>.<ext>` y se sirven en `/uploads/...` — **misma URL que el sitio anterior**, así los `file_url` ya guardados siguen andando. El archivo viaja en la **misma petición** que el documento y la URL la decide el servidor (el sitio anterior aceptaba cualquier `file_url` del navegador). Con archivo, editar va como `POST` + `_method=put` (PHP no parsea multipart en un PUT real).
+- **Seguridad de subidas (crítico en hosting PHP)**: solo `pdf, doc, docx, txt, jpg, jpeg, png, webp`, validando extensión **y contenido real** (`extensions` + `mimes`), máx 20 MB. `public/uploads/.htaccess` (versionado; el resto de la carpeta está en `.gitignore`) impide ejecutar scripts ahí como segunda barrera. Borrar solo afecta archivos dentro de `public/uploads` (`Uploads::pathFor` resuelve `realpath`). Reemplazar o quitar el archivo de un documento borra el anterior del disco.
+- En tests, `PoliticaTest` redirige `public_path()` a una carpeta temporal; para probar archivos disfrazados usa archivos reales en disco (los `UploadedFile::fake()` declaran el tipo por la extensión, no por el contenido).
+- **Manual de Convivencia y Ética**: `resources/js/content/politica/manual-convivencia.mdx`, compilado con `@mdx-js/rollup` (en `vite.config.ts`, con `enforce: 'pre'` antes del plugin de React) y estilizado con `components/mdx-components.tsx`. El índice lateral sale de `lib/constants/manual-sections.ts`; `tests/Unit/ManualSectionsTest.php` verifica que coincida con las secciones del `.mdx`.
+
 ## Desarrollo local
 
 - PHP 8.3 (el PHP de XAMPP se actualizó a 8.3.35; respaldo del 8.2 en `C:\xampp\php-8.2.12-respaldo`), Composer 2.10, Node 22, MySQL de XAMPP.
@@ -88,6 +96,6 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 
 ## Estado
 
-- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube.
-- ⏳ Fases 4 (política, cordas, manual), 5 (analíticas, páginas de ejemplo), 5.1 (páginas de error), 5.2 (auditoría).
+- ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual.
+- ⏳ Fases 5 (analíticas, páginas de ejemplo), 5.1 (páginas de error), 5.2 (auditoría).
 - ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.
