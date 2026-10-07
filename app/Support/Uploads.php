@@ -6,12 +6,17 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 
 /**
- * Archivos subidos por usuarios, guardados en public/uploads/<carpeta>/ y
- * servidos como estáticos en /uploads/<carpeta>/<archivo> (misma URL que en el
- * sitio anterior, así los `file_url` ya guardados en la base siguen andando).
+ * Archivos subidos por usuarios (documentos de política).
  *
- * public/uploads/ está en .gitignore (salvo su .htaccess, que impide ejecutar
- * scripts ahí: en un hosting PHP, un archivo subido `.php` se ejecutaría).
+ * Se guardan en storage/app/uploads/<carpeta>/, FUERA de public/, y se
+ * sirven con la ruta `GET /uploads/{path}` (UploadController), que exige
+ * sesión. La URL pública sigue siendo `/uploads/<carpeta>/<archivo>`, igual
+ * que en el sitio anterior, así los `file_url` ya guardados siguen andando.
+ *
+ * Por qué no en public/: lo que está en public/ lo entrega el servidor web
+ * directo, sin pasar por Laravel ni por el login (en el sitio Next sí pasaba
+ * por el filtro de sesión). Y fuera de public/ un archivo subido nunca se
+ * puede ejecutar como código.
  */
 final class Uploads
 {
@@ -20,14 +25,14 @@ final class Uploads
 
     public static function root(): string
     {
-        return public_path('uploads');
+        return (string) config('filesystems.uploads_root', storage_path('app/uploads'));
     }
 
     /**
      * Guarda el archivo con un nombre seguro: `<milisegundos>_<nombre>.<ext>`,
      * nombre solo alfanumérico/guiones y extensión en minúsculas.
      *
-     * @return string URL pública relativa (`/uploads/<carpeta>/<archivo>`)
+     * @return string URL relativa (`/uploads/<carpeta>/<archivo>`)
      */
     public static function store(UploadedFile $file, string $folder): string
     {
@@ -43,7 +48,7 @@ final class Uploads
 
     /**
      * Borra el archivo de una URL `/uploads/...`. Ignora URLs externas o que
-     * apunten fuera de public/uploads (protección contra rutas con `..`).
+     * apunten fuera de la carpeta de subidas (protección contra `..`).
      */
     public static function delete(?string $url): void
     {
@@ -61,7 +66,8 @@ final class Uploads
             return null;
         }
 
-        $path = realpath(public_path(ltrim($url, '/')));
+        $relative = substr($url, strlen('/uploads/'));
+        $path = realpath(self::root().DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $relative));
         $root = realpath(self::root());
 
         if ($path === false || $root === false || ! is_file($path)) {

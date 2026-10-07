@@ -31,7 +31,9 @@ export default function Perfil() {
     const { user } = useAuth();
 
     // ── Avatar (cuerda) ────────────────────────────────────────────────
-    const [selectedAvatar, setSelectedAvatar] = useState<string | null>(user?.avatar ?? null);
+    const [selectedAvatar, setSelectedAvatar] = useState<string | null>(
+        user?.avatar ?? null,
+    );
     const [avatarSaved, flashAvatarSaved] = useFlag(3000);
     const [avatarError, setAvatarError] = useState('');
 
@@ -40,7 +42,11 @@ export default function Perfil() {
     const [savedApodo, flashSavedApodo] = useFlag(3000);
 
     // ── Contraseña ─────────────────────────────────────────────────────
-    const passForm = useForm({ current_password: '', password: '', password_confirmation: '' });
+    const passForm = useForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
     const [savedPass, flashSavedPass] = useFlag(4000);
     const [passError, setPassError] = useState('');
     const [showCurrent, setShowCurrent] = useState(false);
@@ -69,7 +75,10 @@ export default function Perfil() {
 
     const handleSaveApodo = (e: FormEvent) => {
         e.preventDefault();
-        apodoForm.put('/perfil/apodo', { preserveScroll: true, onSuccess: () => flashSavedApodo() });
+        apodoForm.put('/perfil/apodo', {
+            preserveScroll: true,
+            onSuccess: () => flashSavedApodo(),
+        });
     };
 
     const handleChangePassword = (e: FormEvent) => {
@@ -77,7 +86,9 @@ export default function Perfil() {
         setPassError('');
 
         if (passForm.data.password.length < 6) {
-            setPassError('La nueva contraseña debe tener al menos 6 caracteres');
+            setPassError(
+                'La nueva contraseña debe tener al menos 6 caracteres',
+            );
 
             return;
         }
@@ -97,7 +108,8 @@ export default function Perfil() {
         });
     };
 
-    const passServerError = passForm.errors.current_password ?? passForm.errors.password;
+    const passServerError =
+        passForm.errors.current_password ?? passForm.errors.password;
 
     return (
         <div className="min-h-screen bg-background">
@@ -132,20 +144,30 @@ export default function Perfil() {
                             </h1>
                             <div className="mt-2 flex items-center justify-center gap-2">
                                 <Award className="h-4 w-4 text-primary" />
-                                <span className="font-medium text-primary">{ROLE_LABELS[user.role] ?? user.role}</span>
+                                <span className="font-medium text-primary">
+                                    {ROLE_LABELS[user.role] ?? user.role}
+                                </span>
                             </div>
                         </CardHeader>
 
                         <CardContent className="pt-6">
                             <div className="grid gap-4 text-sm sm:grid-cols-2">
                                 <div className="space-y-1">
-                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Usuario</p>
-                                    <p className="text-foreground">@{user.username}</p>
+                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                        Usuario
+                                    </p>
+                                    <p className="text-foreground">
+                                        @{user.username}
+                                    </p>
                                 </div>
                                 {user.email && (
                                     <div className="space-y-1">
-                                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Email</p>
-                                        <p className="text-foreground">{user.email}</p>
+                                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                            Email
+                                        </p>
+                                        <p className="text-foreground">
+                                            {user.email}
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -155,8 +177,12 @@ export default function Perfil() {
                     {/* ── Elegir cuerda ── */}
                     <Card className="border-border bg-card">
                         <CardHeader className="border-b border-border pb-4">
-                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">Tu cuerda</h2>
-                            <p className="text-sm text-muted-foreground">Elige la cuerda que te identifica.</p>
+                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">
+                                Tu cuerda
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Elige la cuerda que te identifica.
+                            </p>
                         </CardHeader>
                         <CardContent className="pt-6">
                             <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
@@ -168,7 +194,9 @@ export default function Perfil() {
                                         title={c.label}
                                         aria-pressed={selectedAvatar === c.id}
                                         className={`flex flex-col items-center gap-1.5 rounded-lg p-1.5 transition-all focus:outline-none ${
-                                            selectedAvatar === c.id ? 'bg-primary/10' : 'hover:bg-secondary'
+                                            selectedAvatar === c.id
+                                                ? 'bg-primary/10'
+                                                : 'hover:bg-secondary'
                                         }`}
                                     >
                                         <div
@@ -185,16 +213,22 @@ export default function Perfil() {
                                                 src={`/Cuerda x cuerda/${c.id}.png`}
                                                 alt=""
                                                 className="h-full w-full object-contain"
-                                                style={{ transform: 'translateY(9.6%) scale(1.8)' }}
+                                                style={{
+                                                    transform:
+                                                        'translateY(9.6%) scale(1.8)',
+                                                }}
                                             />
                                         </div>
-                                        <span className="text-center text-[11px] leading-tight text-muted-foreground">{c.label}</span>
+                                        <span className="text-center text-[11px] leading-tight text-muted-foreground">
+                                            {c.label}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
                             {avatarSaved && (
                                 <p className="mt-4 flex items-center justify-center gap-1 text-center text-sm text-primary">
-                                    <CheckCircle className="h-4 w-4" /> ¡Cuerda guardada!
+                                    <CheckCircle className="h-4 w-4" /> ¡Cuerda
+                                    guardada!
                                 </p>
                             )}
                             {avatarError && (
@@ -208,27 +242,46 @@ export default function Perfil() {
                     {/* ── Editar apodo ── */}
                     <Card className="border-border bg-card">
                         <CardHeader className="border-b border-border pb-4">
-                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">Apodo</h2>
-                            <p className="text-sm text-muted-foreground">Tu nombre de capoeira aparecerá en tu perfil.</p>
+                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">
+                                Apodo
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Tu nombre de capoeira aparecerá en tu perfil.
+                            </p>
                         </CardHeader>
                         <CardContent className="pt-6">
-                            <form onSubmit={handleSaveApodo} className="space-y-4">
+                            <form
+                                onSubmit={handleSaveApodo}
+                                className="space-y-4"
+                            >
                                 <div className="space-y-2">
-                                    <Label htmlFor="apodo">Apodo (opcional)</Label>
+                                    <Label htmlFor="apodo">
+                                        Apodo (opcional)
+                                    </Label>
                                     <Input
                                         id="apodo"
                                         value={apodoForm.data.apodo}
-                                        onChange={(e) => apodoForm.setData('apodo', e.target.value)}
+                                        onChange={(e) =>
+                                            apodoForm.setData(
+                                                'apodo',
+                                                e.target.value,
+                                            )
+                                        }
                                         disabled={apodoForm.processing}
                                         placeholder="Ej: Mariposa do Mar"
                                         maxLength={60}
                                     />
                                 </div>
                                 {apodoForm.errors.apodo && (
-                                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{apodoForm.errors.apodo}</p>
+                                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                                        {apodoForm.errors.apodo}
+                                    </p>
                                 )}
                                 <div className="flex items-center gap-3">
-                                    <Button type="submit" disabled={apodoForm.processing}>
+                                    <Button
+                                        type="submit"
+                                        disabled={apodoForm.processing}
+                                    >
                                         {apodoForm.processing ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -252,19 +305,40 @@ export default function Perfil() {
                     {/* ── Cambiar contraseña ── */}
                     <Card className="border-border bg-card">
                         <CardHeader className="border-b border-border pb-4">
-                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">Cambiar contraseña</h2>
-                            <p className="text-sm text-muted-foreground">Necesitas tu contraseña actual para establecer una nueva.</p>
+                            <h2 className="font-serif text-lg leading-none font-semibold text-foreground">
+                                Cambiar contraseña
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Necesitas tu contraseña actual para establecer
+                                una nueva.
+                            </p>
                         </CardHeader>
                         <CardContent className="pt-6">
-                            <form onSubmit={handleChangePassword} className="space-y-4">
+                            <form
+                                onSubmit={handleChangePassword}
+                                className="space-y-4"
+                            >
                                 <div className="space-y-2">
-                                    <Label htmlFor="current-pass">Contraseña actual</Label>
+                                    <Label htmlFor="current-pass">
+                                        Contraseña actual
+                                    </Label>
                                     <div className="relative">
                                         <Input
                                             id="current-pass"
-                                            type={showCurrent ? 'text' : 'password'}
-                                            value={passForm.data.current_password}
-                                            onChange={(e) => passForm.setData('current_password', e.target.value)}
+                                            type={
+                                                showCurrent
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
+                                            value={
+                                                passForm.data.current_password
+                                            }
+                                            onChange={(e) =>
+                                                passForm.setData(
+                                                    'current_password',
+                                                    e.target.value,
+                                                )
+                                            }
                                             disabled={passForm.processing}
                                             placeholder="Tu contraseña actual"
                                             required
@@ -273,23 +347,40 @@ export default function Perfil() {
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => setShowCurrent((v) => !v)}
+                                            onClick={() =>
+                                                setShowCurrent((v) => !v)
+                                            }
                                             className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showCurrent ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            aria-label={
+                                                showCurrent
+                                                    ? 'Ocultar contraseña'
+                                                    : 'Mostrar contraseña'
+                                            }
                                         >
-                                            {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showCurrent ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="new-pass">Nueva contraseña</Label>
+                                    <Label htmlFor="new-pass">
+                                        Nueva contraseña
+                                    </Label>
                                     <div className="relative">
                                         <Input
                                             id="new-pass"
                                             type={showNew ? 'text' : 'password'}
                                             value={passForm.data.password}
-                                            onChange={(e) => passForm.setData('password', e.target.value)}
+                                            onChange={(e) =>
+                                                passForm.setData(
+                                                    'password',
+                                                    e.target.value,
+                                                )
+                                            }
                                             disabled={passForm.processing}
                                             placeholder="Mínimo 6 caracteres"
                                             required
@@ -298,22 +389,41 @@ export default function Perfil() {
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => setShowNew((v) => !v)}
+                                            onClick={() =>
+                                                setShowNew((v) => !v)
+                                            }
                                             className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            aria-label={
+                                                showNew
+                                                    ? 'Ocultar contraseña'
+                                                    : 'Mostrar contraseña'
+                                            }
                                         >
-                                            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showNew ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirm-pass">Confirmar nueva contraseña</Label>
+                                    <Label htmlFor="confirm-pass">
+                                        Confirmar nueva contraseña
+                                    </Label>
                                     <Input
                                         id="confirm-pass"
                                         type="password"
-                                        value={passForm.data.password_confirmation}
-                                        onChange={(e) => passForm.setData('password_confirmation', e.target.value)}
+                                        value={
+                                            passForm.data.password_confirmation
+                                        }
+                                        onChange={(e) =>
+                                            passForm.setData(
+                                                'password_confirmation',
+                                                e.target.value,
+                                            )
+                                        }
                                         disabled={passForm.processing}
                                         placeholder="Repite la nueva contraseña"
                                         required
@@ -322,13 +432,19 @@ export default function Perfil() {
                                 </div>
 
                                 {(passError || passServerError) && (
-                                    <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                                    <p
+                                        role="alert"
+                                        className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                                    >
                                         {passError || passServerError}
                                     </p>
                                 )}
 
                                 <div className="flex items-center gap-3">
-                                    <Button type="submit" disabled={passForm.processing}>
+                                    <Button
+                                        type="submit"
+                                        disabled={passForm.processing}
+                                    >
                                         {passForm.processing ? (
                                             <>
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

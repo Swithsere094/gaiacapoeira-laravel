@@ -7,6 +7,7 @@ use App\Http\Controllers\GaleraController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SongController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 
 // ── Público (sin sesión) ─────────────────────────────────────────────
@@ -42,6 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::get('politica', [PoliticaController::class, 'index'])->name('politica');
     Route::inertia('politica/cordas', 'politica/cordas')->name('politica.cordas');
     Route::inertia('politica/manual', 'politica/manual')->name('politica.manual');
+
+    // Archivos subidos (documentos de política): solo con sesión.
+    Route::get('uploads/{path}', [UploadController::class, 'show'])->where('path', '.+')->name('uploads');
 
     // Páginas de ejemplo (contenido fijo, todavía sin base de datos).
     Route::inertia('articulos', 'articulos')->name('articulos');

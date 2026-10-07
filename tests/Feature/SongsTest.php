@@ -57,6 +57,27 @@ class SongsTest extends TestCase
         $this->assertDatabaseCount('songs', 0);
     }
 
+    public function test_el_video_tiene_que_ser_de_youtube_o_vimeo(): void
+    {
+        $this->actingAsRole('member');
+
+        foreach ([
+            'https://sitio-falso.com/login',
+            'https://evil.com/?youtube.com/embed/abcdefghijk',
+            'https://youtube.com.evil.com/watch?v=abcdefghijk',
+            'javascript:alert(1)',
+        ] as $url) {
+            $this->post('/canciones', [...$this->valid, 'video_url' => $url])
+                ->assertSessionHasErrors(['video_url' => 'El video tiene que ser un enlace de YouTube o Vimeo.']);
+        }
+
+        foreach (['https://www.youtube.com/watch?v=abcdefghijk', 'https://youtu.be/abcdefghijk', 'https://vimeo.com/123456'] as $url) {
+            $this->post('/canciones', [...$this->valid, 'video_url' => $url])->assertSessionHasNoErrors();
+        }
+
+        $this->assertDatabaseCount('songs', 3);
+    }
+
     public function test_sin_ritmos_guarda_tags_null(): void
     {
         $this->actingAsRole('member');
