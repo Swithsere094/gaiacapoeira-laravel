@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Sincronización manual de rodas y cantorias desde playlists de YouTube
+    // (botones "Sync YouTube" en /galera). Mismas variables que el sitio anterior.
+    'youtube' => [
+        'key' => env('YOUTUBE_API_KEY'),
+        'rodas_playlist' => env('YOUTUBE_PLAYLIST_ID'),
+        'cantorias_playlist' => env('YOUTUBE_CANTORIAS_PLAYLIST_ID'),
+    ],
+
 ];
