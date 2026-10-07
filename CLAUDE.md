@@ -108,6 +108,28 @@ Informe completo y decisiones tomadas: `docs/auditoria-2026-10-07.md`. Lo que ha
 - **Sesión**: 7 días (`SESSION_LIFETIME=10080`, como el sitio anterior); en producción `SESSION_SECURE_COOKIE=true`. Valores obligatorios de producción: al final de `.env.example`.
 - **Dependencias**: `npm audit` y `composer audit` en 0. Hay `overrides` en `package.json` para forzar versiones parcheadas de `shell-quote` y `@babel/core`, y `vite` es un alias de `@voidzero-dev/vite-plus-core` (lo exige `vite-plus` ≥ 0.3.3; no cambiarlo por `vite` a secas).
 
+## Publicación (fase 6)
+
+**Push a `main` = publicación**, vía `.github/workflows/ci-deploy.yml` (reemplazó al `tests.yml` del kit, que fallaba en cada push porque corría `migrate` sin base de datos):
+
+1. Job `tests` (en cada push y PR): MariaDB 11.8 temporal (igual que producción) + los mismos chequeos obligatorios de antes de cada commit.
+2. Job `deploy` (solo push a `main` y si `tests` pasó): compila en GitHub (el servidor **no tiene Node**: vendor sin dev + `npm run build`), sube por rsync a `$DEPLOY_PATH/releases/<fecha>-<sha>`, enlaza `shared/.env` y `shared/storage`, corre `migrate --force` + `optimize`, cambia el enlace `current` (atómico) y prueba que `/auth/login` responda 200; si no, **vuelve solo a la versión anterior**. Guarda las 5 últimas versiones.
+
+En el servidor (`DEPLOY_PATH` = `/home/u762014524/apps/gaia-nuevo` mientras se prueba en `nuevo.gaiacapoeira.com`):
+
+```
+releases/<versión>/   copia completa de cada publicación
+current → releases/…  versión activa (volver atrás a mano = apuntarlo a otra)
+shared/.env           secretos (600), nunca en git; APP_KEY generada en el servidor
+shared/storage/       subidas (uploads/politica), logs, vistas compiladas
+domains/<dominio>/public_html → current/public   (LiteSpeed sigue el enlace)
+```
+
+- **Secrets de GitHub** (repo → Settings → Secrets and variables → Actions): `SSH_HOST`, `SSH_PORT`, `SSH_USER`, `SSH_PRIVATE_KEY` (llave exclusiva `gaiacapoeira-github-actions`, distinta de la de Claude Code), `SSH_KNOWN_HOSTS`, `DEPLOY_PATH`. La URL del sitio para la prueba final está en `SITE_URL` dentro del workflow.
+- **Gotcha SSH de Hostinger**: detrás de `82.197.80.207:65002` responden **dos servidores SSH** (host keys distintas, por eso `SSH_KNOWN_HOSTS` tiene 2 líneas) y solo uno acepta las llaves: ~50 % de las conexiones dan "Permission denied". El workflow reintenta hasta conectar y reutiliza esa conexión (`ControlMaster`) para el resto de los pasos. Para comandos a mano, reintentar igual.
+- En producción `DB_HOST=localhost`: el hostname `srvXXXX.hstgr.io` pasa por el acceso remoto de MySQL y da "Access denied" si la base no lo tiene habilitado.
+- No hay `crontab` por SSH (los cron se crean desde hPanel); hoy no hace falta ninguno (`QUEUE_CONNECTION=sync`).
+
 ## Desarrollo local
 
 - PHP 8.3 (el PHP de XAMPP se actualizó a 8.3.35; respaldo del 8.2 en `C:\xampp\php-8.2.12-respaldo`), Composer 2.10, Node 22, MySQL de XAMPP.
@@ -128,4 +150,5 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 ## Estado
 
 - ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; todas las decisiones P1–P7 tomadas y aplicadas: P5 (CSP) postergada y P6 (`songs.user_id`) descartada, a propósito).
-- ⏳ Fases 6 (publicación automática con GitHub Actions) y 7 (cambio en Hostinger): a hacer junto con el usuario.
+- ✅ Fase 6: publicación automática con GitHub Actions a `nuevo.gaiacapoeira.com` (ver "Publicación").
+- ⏳ Fase 7 (cambio de `gaiacapoeira.com` al sitio nuevo): a hacer junto con el usuario. Incluye: pasar el dominio de la app Node al sitio PHP con `public_html` → `current/public`, cambiar `SITE_URL`/`APP_URL`, verificar el formato de `X-Forwarded-For`, y copiar los PDFs de política (la base apunta a `1789487…_Manual…V3_.pdf` y `1789487…_Gradua__es….pdf`, que no existen; en el servidor solo están las versiones `1788190…` en `domains/gaiacapoeira.com/nodejs/public/uploads/politica/`).
