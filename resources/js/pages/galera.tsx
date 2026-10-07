@@ -4,6 +4,7 @@ import { useSearchParams } from '@/lib/navigation';
 import { Navigation } from '@/components/navigation';
 import { Footer } from '@/components/footer';
 import { VideoCard } from '@/components/video-card';
+import { useConfirm } from '@/components/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import {
     Play,
@@ -108,6 +109,7 @@ export default function GaleraContent({
         | 'cantorias';
 
     const { user } = useAuth();
+    const { confirm, notify } = useConfirm();
     const isAdmin = user?.role === 'admin';
     const { flash } = usePage().props;
 
@@ -196,11 +198,18 @@ export default function GaleraContent({
         });
     };
 
-    const handleDeleteRoda = (id: string) => {
-        if (!confirm('¿Eliminar esta roda?')) return;
+    const handleDeleteRoda = async (id: string) => {
+        const ok = await confirm({
+            title: '¿Eliminar esta roda?',
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+            destructive: true,
+        });
+        if (!ok) return;
         router.delete(`/galera/rodas/${id}`, {
             preserveScroll: true,
-            onError: () => alert('No se pudo eliminar la roda.'),
+            onError: () =>
+                void notify({ title: 'No se pudo eliminar la roda.' }),
         });
     };
 
@@ -223,11 +232,18 @@ export default function GaleraContent({
         });
     };
 
-    const handleDeleteCantoria = (id: string) => {
-        if (!confirm('¿Eliminar esta cantoria?')) return;
+    const handleDeleteCantoria = async (id: string) => {
+        const ok = await confirm({
+            title: '¿Eliminar esta cantoria?',
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+            destructive: true,
+        });
+        if (!ok) return;
         router.delete(`/galera/cantorias/${id}`, {
             preserveScroll: true,
-            onError: () => alert('No se pudo eliminar la cantoria.'),
+            onError: () =>
+                void notify({ title: 'No se pudo eliminar la cantoria.' }),
         });
     };
 

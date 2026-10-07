@@ -4,6 +4,7 @@ import { SectionLayout } from '@/components/section-layout';
 import { SongCard } from '@/components/song-card';
 import { Music, Filter, Plus, Loader2, Search, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/confirm-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import {
     Dialog,
@@ -75,6 +76,7 @@ const EMPTY_FORM = {
 
 export default function CancionesPage({ songs }: { songs: Song[] }) {
     const { user } = useAuth();
+    const { confirm, notify } = useConfirm();
     const isAdmin = user?.role === 'admin';
 
     // Las canciones llegan como props de Inertia (ya cargadas por el servidor):
@@ -153,11 +155,18 @@ export default function CancionesPage({ songs }: { songs: Song[] }) {
     };
 
     // ── Delete ─────────────────────────────────────────────────────────
-    const handleDelete = (id: string) => {
-        if (!confirm('¿Eliminar esta canción?')) return;
+    const handleDelete = async (id: string) => {
+        const ok = await confirm({
+            title: '¿Eliminar esta canción?',
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+            destructive: true,
+        });
+        if (!ok) return;
         router.delete(`/canciones/${id}`, {
             preserveScroll: true,
-            onError: () => alert('No se pudo eliminar la canción.'),
+            onError: () =>
+                void notify({ title: 'No se pudo eliminar la canción.' }),
         });
     };
 

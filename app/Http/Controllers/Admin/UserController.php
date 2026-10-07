@@ -29,7 +29,7 @@ class UserController extends Controller
 
         $data = $request->validate([
             'username' => ['required', 'string', 'max:255', Rule::unique('usuarios', 'username')],
-            'password' => ['required', 'string', 'min:6', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'max:255'],
             ...$this->profileRules(),
         ], $this->messages());
 
@@ -48,9 +48,18 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'password' => ['nullable', 'string', 'min:6', 'max:255'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
             ...$this->profileRules(),
         ], $this->messages());
+
+        // Un admin no puede quitarse su propio rol (auditoría P4): junto con
+        // no poder eliminarse a sí mismo, garantiza que siempre quede al
+        // menos un admin (el que está haciendo los cambios).
+        if ($request->user()->is($user) && $data['role'] !== 'admin') {
+            throw ValidationException::withMessages([
+                'role' => 'No puedes quitarte tu propio rol de administrador',
+            ]);
+        }
 
         $updates = [
             'name' => $data['name'],
@@ -97,7 +106,7 @@ class UserController extends Controller
             'username.unique' => 'El nombre de usuario ya existe',
             'username.required' => 'Usuario, contraseña, nombre y rol son obligatorios',
             'password.required' => 'La contraseña es obligatoria para nuevos usuarios',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres',
+            'password.min' => 'La contraseña debe tener al menos 8 caracteres',
             'name.required' => 'Usuario, contraseña, nombre y rol son obligatorios',
             'role.in' => 'Rol inválido',
             'email.email' => 'El email no es válido',

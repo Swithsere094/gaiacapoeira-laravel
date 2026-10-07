@@ -21,10 +21,17 @@ use Inertia\Response;
  * conociendo su usuario y email. Si alguien olvida su contraseña, un admin
  * le asigna una nueva desde Gestión de Usuarios.
  *
- * El límite de intentos va por IP del visitante (App\Support\ClientIp) y
- * cuenta cada intento. A diferencia del sitio anterior (un Map en memoria
- * que se perdía en cada reinicio) el contador vive en la caché de Laravel
- * (tabla `cache`), así que sobrevive a reinicios y despliegues.
+ * Dos límites de intentos, cada uno de 10 cada 15 minutos:
+ *  - por IP del visitante (App\Support\ClientIp), cuenta cada intento, como
+ *    el sitio anterior;
+ *  - por usuario (auditoría P2, decisión del 2026-10-07): cuenta solo los
+ *    intentos FALLIDOS contra esa cuenta y se reinicia con un login
+ *    correcto. Frena a quien prueba contraseñas contra una cuenta desde
+ *    muchas IPs. El mensaje es el mismo exista o no el usuario (no revela
+ *    qué usuarios existen).
+ * A diferencia del sitio anterior (un Map en memoria que se perdía en cada
+ * reinicio) los contadores viven en la caché de Laravel (tabla `cache`), así
+ * que sobreviven a reinicios y despliegues.
  */
 class AuthController extends Controller
 {
@@ -49,12 +56,18 @@ class AuthController extends Controller
             'password.required' => 'Usuario y contraseña requeridos',
         ]);
 
+        $userKey = 'login-user:'.mb_strtolower(trim($credentials['username']));
+        $this->ensureNotLocked($userKey);
+
         if (! Auth::attempt($credentials)) {
+            RateLimiter::hit($userKey, self::WINDOW_SECONDS);
+
             throw ValidationException::withMessages([
                 'username' => 'Usuario o contraseña incorrectos',
             ]);
         }
 
+        RateLimiter::clear($userKey);
         $request->session()->regenerate();
 
         return redirect()->intended('/');
@@ -69,7 +82,15 @@ class AuthController extends Controller
         return redirect('/auth/login');
     }
 
+    /** Límite por IP: corta y además cuenta este intento. */
     private function throttle(string $key): void
+    {
+        $this->ensureNotLocked($key);
+        RateLimiter::hit($key, self::WINDOW_SECONDS);
+    }
+
+    /** Corta si el contador ya llegó al límite (sin sumar un intento). */
+    private function ensureNotLocked(string $key): void
     {
         if (RateLimiter::tooManyAttempts($key, self::LOGIN_LIMIT)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
@@ -78,7 +99,5 @@ class AuthController extends Controller
                 'username' => "Demasiados intentos. Probá de nuevo en {$minutes} minuto(s).",
             ])->status(429);
         }
-
-        RateLimiter::hit($key, self::WINDOW_SECONDS);
     }
 }

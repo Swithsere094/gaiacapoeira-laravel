@@ -5,7 +5,7 @@ namespace App\Support;
 use Illuminate\Http\Request;
 
 /**
- * IP del visitante para los límites de intentos (login, olvidé contraseña).
+ * IP del visitante para los límites de intentos (login).
  *
  * Hostinger sirve el sitio detrás de su CDN/proxy: la IP de la conexión
  * (REMOTE_ADDR) es la del proxy, igual para todos. Sin esto, el límite de

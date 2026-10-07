@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -95,6 +96,57 @@ class AuthTest extends TestCase
             ->assertSessionHasErrors('username');
         $this->assertGuest();
         $this->assertStringContainsString('Demasiados intentos', session('errors')->first('username'));
+    }
+
+    /** Envía un intento de login como si viniera de la IP dada (vía el proxy). */
+    private function loginFrom(string $ip, string $username, string $password): TestResponse
+    {
+        return $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->withHeader('X-Forwarded-For', $ip)
+            ->post('/auth/login', ['username' => $username, 'password' => $password]);
+    }
+
+    public function test_login_bloquea_una_cuenta_tras_10_fallos_aunque_vengan_de_ips_distintas(): void
+    {
+        User::factory()->create(['username' => 'mestre', 'password_hash' => 'secreto123']);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $this->loginFrom("198.51.100.{$i}", 'MESTRE', 'mal');
+        }
+
+        // Desde una IP nueva y con la clave correcta: la cuenta sigue bloqueada.
+        $this->loginFrom('203.0.113.50', 'mestre', 'secreto123')->assertSessionHasErrors('username');
+        $this->assertGuest();
+        $this->assertStringContainsString('Demasiados intentos', session('errors')->first('username'));
+    }
+
+    public function test_el_bloqueo_por_usuario_no_afecta_a_otras_cuentas(): void
+    {
+        User::factory()->create(['username' => 'mestre', 'password_hash' => 'secreto123']);
+        $otro = User::factory()->create(['username' => 'aluno', 'password_hash' => 'clave4567']);
+
+        for ($i = 1; $i <= 10; $i++) {
+            $this->loginFrom("198.51.100.{$i}", 'mestre', 'mal');
+        }
+
+        $this->loginFrom('203.0.113.50', 'aluno', 'clave4567')->assertRedirect('/');
+        $this->assertAuthenticatedAs($otro);
+    }
+
+    public function test_un_login_correcto_reinicia_el_contador_de_la_cuenta(): void
+    {
+        User::factory()->create(['username' => 'mestre', 'password_hash' => 'secreto123']);
+
+        for ($i = 1; $i <= 9; $i++) {
+            $this->loginFrom("198.51.100.{$i}", 'mestre', 'mal');
+        }
+        $this->loginFrom('198.51.100.20', 'mestre', 'secreto123')->assertRedirect('/');
+        $this->post('/auth/logout');
+
+        // Si el contador no se hubiera reiniciado, 2 fallos más llegarían a 11.
+        $this->loginFrom('198.51.100.21', 'mestre', 'mal');
+        $this->loginFrom('198.51.100.22', 'mestre', 'mal');
+        $this->loginFrom('198.51.100.23', 'mestre', 'secreto123')->assertRedirect('/');
     }
 
     public function test_un_usuario_con_sesion_no_ve_el_login(): void

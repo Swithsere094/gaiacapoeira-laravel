@@ -85,13 +85,13 @@ class ProfileTest extends TestCase
         $this->assertTrue(Hash::check('vieja123', $user->fresh()->password_hash));
     }
 
-    public function test_la_nueva_contrasena_necesita_6_caracteres_y_confirmacion(): void
+    public function test_la_nueva_contrasena_necesita_8_caracteres_y_confirmacion(): void
     {
         $this->actingAsRole('member', ['password_hash' => 'vieja123']);
 
         $this->put('/perfil/password', [
-            'current_password' => 'vieja123', 'password' => '123', 'password_confirmation' => '123',
-        ])->assertSessionHasErrors('password');
+            'current_password' => 'vieja123', 'password' => '1234567', 'password_confirmation' => '1234567',
+        ])->assertSessionHasErrors(['password' => 'La nueva contraseña debe tener al menos 8 caracteres']);
 
         $this->put('/perfil/password', [
             'current_password' => 'vieja123', 'password' => 'nueva456', 'password_confirmation' => 'otra456',

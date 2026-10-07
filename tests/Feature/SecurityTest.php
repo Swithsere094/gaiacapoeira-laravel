@@ -51,11 +51,12 @@ class SecurityTest extends TestCase
     {
         User::factory()->create(['username' => 'mestre', 'password_hash' => 'secreto123']);
 
-        // Un atacante agota sus 10 intentos...
+        // Un atacante agota sus 10 intentos (contra otra cuenta, para que no
+        // entre en juego el límite por usuario)...
         for ($i = 0; $i < 10; $i++) {
             $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
                 ->withHeader('X-Forwarded-For', '198.51.100.1')
-                ->post('/auth/login', ['username' => 'mestre', 'password' => 'mal']);
+                ->post('/auth/login', ['username' => 'otra-cuenta', 'password' => 'mal']);
         }
 
         // ...y otra persona, detrás del mismo proxy, igual puede entrar.
