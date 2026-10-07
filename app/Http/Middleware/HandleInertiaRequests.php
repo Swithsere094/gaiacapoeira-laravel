@@ -35,13 +35,22 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                // Solo los campos públicos (misma forma que `AppUser` del
+                // sitio original), nunca el modelo completo.
+                'user' => $user ? $user->only(['id', 'username', 'name', 'email', 'role', 'apodo', 'avatar']) : null,
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Mensajes de un solo uso (se borran después de mostrarse).
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'tempPassword' => fn () => $request->session()->get('tempPassword'),
+            ],
         ];
     }
 }

@@ -3,23 +3,20 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Solo para bases locales desde cero (nunca correr contra producción): crea
+ * un admin de prueba. Los datos reales vienen de la base heredada.
+ */
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        User::factory()->admin()->create([
+            'username' => 'admin_local',
+            'password_hash' => 'admin_local_pw123',
+            'name' => 'Admin local',
         ]);
     }
 }

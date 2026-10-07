@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Middleware\HandleAppearance;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PreventCaching;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,10 +16,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->redirectGuestsTo('/auth/login');
+        $middleware->redirectUsersTo('/');
+
+        $middleware->alias(['admin' => EnsureUserIsAdmin::class]);
+
+        // Primero del grupo = último en tocar la respuesta: así su
+        // Cache-Control no lo pisa el middleware de sesión.
+        $middleware->web(prepend: [PreventCaching::class]);
 
         $middleware->web(append: [
-            HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);

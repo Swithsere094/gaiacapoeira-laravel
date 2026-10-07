@@ -2,15 +2,25 @@
 
 namespace Tests;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
-use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
 {
-    protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
+    protected function setUp(): void
     {
-        if (! Features::enabled($feature)) {
-            $this->markTestSkipped($message ?? "Fortify feature [{$feature}] is not enabled.");
-        }
+        parent::setUp();
+
+        // Los tests no dependen de tener el frontend compilado (public/build).
+        $this->withoutVite();
+    }
+
+    /** Inicia sesión como un usuario nuevo con el rol pedido. */
+    protected function actingAsRole(string $role = 'member', array $attributes = []): User
+    {
+        $user = User::factory()->create(['role' => $role, ...$attributes]);
+        $this->actingAs($user);
+
+        return $user;
     }
 }
