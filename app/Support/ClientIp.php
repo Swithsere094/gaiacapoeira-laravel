@@ -17,8 +17,9 @@ use Illuminate\Http\Request;
  * por eso NO se usa trustProxies('*') de Laravel, que devuelve la primera.)
  * Sin la cabecera (acceso directo, local, tests) se usa REMOTE_ADDR.
  *
- * Pendiente de verificar en producción (fase 7): que el proxy de Hostinger
- * efectivamente agregue la IP del visitante al final de X-Forwarded-For.
+ * Verificado en Hostinger (2026-10-08, nuevo.gaiacapoeira.com): el proxy
+ * agrega la IP real al final; una IP inventada por el visitante queda
+ * primera ("6.6.6.6, <IP real>").
  */
 final class ClientIp
 {
