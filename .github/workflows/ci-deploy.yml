@@ -86,7 +86,7 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
     env:
-      SITE_URL: https://nuevo.gaiacapoeira.com
+      SITE_URL: https://gaiacapoeira.com
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
 
     steps:
