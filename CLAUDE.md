@@ -115,7 +115,7 @@ Informe completo y decisiones tomadas: `docs/auditoria-2026-10-07.md`. Lo que ha
 1. Job `tests` (en cada push y PR): MariaDB 11.8 temporal (igual que producción) + los mismos chequeos obligatorios de antes de cada commit.
 2. Job `deploy` (solo push a `main` y si `tests` pasó): compila en GitHub (el servidor **no tiene Node**: vendor sin dev + `npm run build`), sube por rsync a `$DEPLOY_PATH/releases/<fecha>-<sha>`, enlaza `shared/.env` y `shared/storage`, corre `migrate --force` + `optimize`, cambia el enlace `current` (atómico) y prueba que `/auth/login` responda 200; si no, **vuelve solo a la versión anterior**. Guarda las 5 últimas versiones.
 
-En el servidor (`DEPLOY_PATH` = `/home/u762014524/apps/gaia-nuevo`; el nombre quedó de la etapa de prueba y **no conviene renombrarlo**: la caché de config guarda rutas absolutas). Lo sirven **los dos dominios**: `gaiacapoeira.com` (producción) y `nuevo.gaiacapoeira.com` (quedó como alias; ver Estado):
+En el servidor (`DEPLOY_PATH` = `/home/u762014524/apps/gaia-nuevo`; el nombre quedó de la etapa de prueba y **no conviene renombrarlo**: la caché de config guarda rutas absolutas). Lo sirve `gaiacapoeira.com` (el subdominio de prueba `nuevo.gaiacapoeira.com` se eliminó el 2026-10-08):
 
 ```
 releases/<versión>/   copia completa de cada publicación
@@ -153,4 +153,4 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 - ✅ Fase 6: publicación automática con GitHub Actions (ver "Publicación").
 - ✅ Fase 7 (2026-10-08): **gaiacapoeira.com sirve el sitio Laravel.** En hPanel se quitó la app Node.js y se creó un sitio PHP vacío (8.3); su `public_html` es un enlace a `current/public`. `APP_URL` y `SITE_URL` apuntan a `https://gaiacapoeira.com`. PDFs de política copiados a `shared/storage/app/uploads/politica/`.
 - **Base de datos**: se recreó desde el sitio `gaiacapoeira.com` en hPanel (mismo nombre `u762014524_gaiacapoeira`, contraseña nueva solo alfanumérica) para que quede asociada al dominio y no al subdominio. `DB_HOST=localhost`. El acceso remoto (`%`) lo maneja el usuario: lo usa otra persona que trabaja directo sobre producción; el sitio no lo necesita.
-- Pendiente (decisión del usuario): si se elimina el sitio `nuevo.gaiacapoeira.com` de hPanel, antes confirmar que la base no está asociada a él.
+- El subdominio de prueba `nuevo.gaiacapoeira.com` se eliminó (2026-10-08) junto con los restos de la etapa de prueba en el servidor. La base de datos tiene respaldos automáticos en el plan de Hostinger.
