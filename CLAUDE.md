@@ -100,7 +100,7 @@ Errores que la app puede devolver y cuándo: **403** (miembro en ruta de admin),
 
 Informe completo y decisiones tomadas: `docs/auditoria-2026-10-07.md`. Lo que hay que saber al tocar el código:
 
-- **IP del visitante para límites de intentos**: `App\Support\ClientIp` (última IP de `X-Forwarded-For`, la que agrega el proxy de Hostinger). **No usar `trustProxies('*')`** ni `$request->ip()` para eso: con el proxy delante, `ip()` sería la del proxy (límite global) y `trustProxies('*')` devuelve la primera IP de la cabecera, que el visitante puede inventar. **Verificado en Hostinger (2026-10-08)**: con `X-Forwarded-For: 6.6.6.6` inventada, llega `6.6.6.6, <IP real>` — la última es la real. Si se activa el CDN de Hostinger en el dominio, volver a verificarlo.
+- **IP del visitante para límites de intentos**: `App\Support\ClientIp` (última IP de `X-Forwarded-For`, la que agrega el proxy de Hostinger). **No usar `trustProxies('*')`** ni `$request->ip()` para eso: con el proxy delante, `ip()` sería la del proxy (límite global) y `trustProxies('*')` devuelve la primera IP de la cabecera, que el visitante puede inventar. **Verificado en Hostinger (2026-10-08)**: con `X-Forwarded-For: 6.6.6.6` inventada, llega `6.6.6.6, <IP real>` — la última es la real. Verificado también en `gaiacapoeira.com`, que tiene el CDN de Hostinger activo (`Server: hcdn`, marca las páginas `DYNAMIC`: no las cachea).
 - `songs.user_id` **no se guarda** al crear canciones, igual que en el sitio original (decisión del usuario, auditoría P6).
 - **Videos**: solo YouTube/Vimeo (`App\Rules\VideoUrl`, por dominio exacto) en canciones, rodas y cantorias; en el navegador `toEmbedUrl()` arma siempre la URL del reproductor desde el ID y devuelve `''` si no reconoce la URL (nunca embebe la URL tal cual).
 - **Cabeceras**: `SecurityHeaders` (middleware global) agrega `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS por https. **No hay Content-Security-Policy, a propósito** (decisión del usuario, 2026-10-07, auditoría P5): se postergó. Si se retoma, cómo hacerlo está en el informe de auditoría (empezar en modo `Report-Only`).
@@ -115,7 +115,7 @@ Informe completo y decisiones tomadas: `docs/auditoria-2026-10-07.md`. Lo que ha
 1. Job `tests` (en cada push y PR): MariaDB 11.8 temporal (igual que producción) + los mismos chequeos obligatorios de antes de cada commit.
 2. Job `deploy` (solo push a `main` y si `tests` pasó): compila en GitHub (el servidor **no tiene Node**: vendor sin dev + `npm run build`), sube por rsync a `$DEPLOY_PATH/releases/<fecha>-<sha>`, enlaza `shared/.env` y `shared/storage`, corre `migrate --force` + `optimize`, cambia el enlace `current` (atómico) y prueba que `/auth/login` responda 200; si no, **vuelve solo a la versión anterior**. Guarda las 5 últimas versiones.
 
-En el servidor (`DEPLOY_PATH` = `/home/u762014524/apps/gaia-nuevo` mientras se prueba en `nuevo.gaiacapoeira.com`):
+En el servidor (`DEPLOY_PATH` = `/home/u762014524/apps/gaia-nuevo`; el nombre quedó de la etapa de prueba y **no conviene renombrarlo**: la caché de config guarda rutas absolutas). Lo sirven **los dos dominios**: `gaiacapoeira.com` (producción) y `nuevo.gaiacapoeira.com` (quedó como alias; ver Estado):
 
 ```
 releases/<versión>/   copia completa de cada publicación
@@ -150,5 +150,7 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 ## Estado
 
 - ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; todas las decisiones P1–P7 tomadas y aplicadas: P5 (CSP) postergada y P6 (`songs.user_id`) descartada, a propósito).
-- ✅ Fase 6: publicación automática con GitHub Actions a `nuevo.gaiacapoeira.com` (ver "Publicación").
-- ⏳ Fase 7 (cambio de `gaiacapoeira.com` al sitio nuevo): a hacer junto con el usuario. Ya hecho sin tocar el dominio (2026-10-08): PDFs de política copiados a `shared/storage/app/uploads/politica/` con los nombres que espera la base, y formato de `X-Forwarded-For` verificado. Falta: pasar el dominio de la app Node al sitio PHP con `public_html` → `current/public`, y cambiar `APP_URL` (en `shared/.env`) y `SITE_URL` (en el workflow).
+- ✅ Fase 6: publicación automática con GitHub Actions (ver "Publicación").
+- ✅ Fase 7 (2026-10-08): **gaiacapoeira.com sirve el sitio Laravel.** En hPanel se quitó la app Node.js y se creó un sitio PHP vacío (8.3); su `public_html` es un enlace a `current/public`. `APP_URL` y `SITE_URL` apuntan a `https://gaiacapoeira.com`. PDFs de política copiados a `shared/storage/app/uploads/politica/`.
+- **Base de datos**: se recreó desde el sitio `gaiacapoeira.com` en hPanel (mismo nombre `u762014524_gaiacapoeira`, contraseña nueva solo alfanumérica) para que quede asociada al dominio y no al subdominio. `DB_HOST=localhost`. El acceso remoto (`%`) lo maneja el usuario: lo usa otra persona que trabaja directo sobre producción; el sitio no lo necesita.
+- Pendiente (decisión del usuario): si se elimina el sitio `nuevo.gaiacapoeira.com` de hPanel, antes confirmar que la base no está asociada a él.
