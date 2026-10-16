@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Song;
 use App\Rules\VideoUrl;
+use App\Support\Permissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,9 +15,10 @@ use Inertia\Response;
  * Cancionero "Sabiá cantou".
  *
  * Permisos (iguales al sitio anterior): ver, crear y editar → cualquier
- * usuario con sesión; eliminar → solo admin. La marca `nossa` (canción
- * propia del grupo): al crear la marca cualquiera; al editar, solo un admin
- * puede cambiarla (si la manda un miembro, se ignora y queda como estaba).
+ * usuario con sesión; eliminar → permiso `canciones.eliminar`. La marca
+ * `nossa` (canción propia del grupo): al crear la marca cualquiera; al
+ * editar, solo la cambia quien tenga `canciones.nossa` (si la manda otro, se
+ * ignora y queda como estaba). El admin tiene ambos permisos.
  */
 class SongController extends Controller
 {
@@ -40,7 +42,7 @@ class SongController extends Controller
     {
         $data = $this->validated($request);
 
-        if ($request->user()->isAdmin() && $request->has('nossa')) {
+        if ($request->user()->can(Permissions::CANCIONES_NOSSA) && $request->has('nossa')) {
             $data['nossa'] = $request->boolean('nossa');
         }
 

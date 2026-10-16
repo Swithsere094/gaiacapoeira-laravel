@@ -43,7 +43,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 // Solo los campos públicos (misma forma que `AppUser` del
                 // sitio original), nunca el modelo completo.
-                'user' => $user ? $user->only(['id', 'username', 'name', 'email', 'role', 'apodo', 'avatar']) : null,
+                'user' => $user?->toPublicArray(),
+                // Lo que la persona puede hacer, para mostrar u ocultar
+                // botones (el servidor lo vuelve a comprobar).
+                'permissions' => $user?->permissions() ?? [],
             ],
             // Mensajes de un solo uso (se borran después de mostrarse).
             'flash' => [

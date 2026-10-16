@@ -41,15 +41,27 @@ La base de producción ya tiene **13 tablas con datos reales**, creadas por driz
 
 ## Auth
 
-- Modelo `App\Models\User` sobre la tabla **`usuarios`** (no `users`): login por **`username`**, contraseña en **`password_hash`** (`$authPasswordName`), sin `remember_token` (`$rememberTokenName = ''`, el sitio nunca tuvo "recordarme"). Roles: `admin` | `member` (`isAdmin()`).
+- Modelo `App\Models\User` sobre la tabla **`usuarios`** (no `users`): login por **`username`**, contraseña en **`password_hash`** (`$authPasswordName`), sin `remember_token` (`$rememberTokenName = ''`, el sitio nunca tuvo "recordarme"). Roles y permisos en tablas propias: ver "Roles y permisos (fase 8)".
 - **Gotcha de los hashes heredados**: bcryptjs guardó los hashes con prefijo `$2b$`; PHP genera `$2y$`. Es el mismo algoritmo y `password_verify` valida ambos, pero la comprobación estricta de Laravel rechaza `$2b$`. Por eso `config/hashing.php` tiene `'verify' => false` **fijo** (no por `.env`, para que no se pueda olvidar en producción). Laravel re-guarda cada hash como `$2y$` en el siguiente login de esa persona. Los usuarios conservan su contraseña.
 - `App\Http\Controllers\Auth\AuthController`: login y logout. Dos límites: **10 intentos / 15 min por IP** (cuenta cada intento) y **10 intentos fallidos / 15 min por usuario** (auditoría P2: frena a quien prueba contraseñas contra una cuenta desde muchas IPs; un login correcto lo reinicia). A diferencia del sitio anterior (Map en memoria), el contador vive en la caché de Laravel y sobrevive a reinicios.
 - **No hay "olvidé mi contraseña" de autoservicio** (decisión del usuario, 2026-10-07, auditoría P1): el del sitio anterior entregaba una contraseña nueva en pantalla a quien supiera usuario + email, o sea que permitía tomar cualquier cuenta. Si alguien olvida su contraseña, **un admin le asigna una nueva** desde Gestión de Usuarios (editar → "Generar aleatoria"). El login lo explica en un texto; la dirección vieja `/auth/olvide-contrasena` redirige al login. **No volver a agregar un autoservicio que muestre la contraseña en pantalla**; si se quiere autoservicio, que sea mandando la contraseña o un enlace por email al dueño de la cuenta.
 - **Contraseñas: mínimo 8 caracteres** (auditoría P3), en Gestión de Usuarios y en Mi perfil (servidor y formulario).
 - **Un admin no puede quitarse su propio rol** (auditoría P4) ni eliminarse a sí mismo: así siempre queda al menos un admin. Sí puede quitarle el rol a otro admin.
 - Todo el sitio requiere sesión (`auth`), salvo `/auth/login` (`guest`). Admin: middleware alias `admin` (`EnsureUserIsAdmin`, responde 403).
-- `HandleInertiaRequests` comparte `auth.user` **solo con los campos públicos** (misma forma que `AppUser` del sitio anterior) y `flash` (`success`, `error`).
+- `HandleInertiaRequests` comparte `auth.user` **solo con los campos públicos** (`User::toPublicArray()`, misma forma que `AppUser` del sitio anterior más `role_name`), `auth.permissions` y `flash` (`success`, `error`).
 - `PreventCaching` pone `Cache-Control: private, no-store` en toda respuesta (el CDN de Hostinger llegó a cachear HTML protegido en el sitio anterior). Va **primero** en el grupo `web` (prepend) para que el middleware de sesión no le pise la cabecera.
+
+### Roles y permisos (fase 8)
+
+Pedido para poder sumar roles (ej. profesor) sin tocar código. Migración `2026_10_15_000000_create_roles_and_permissions`.
+
+- **Tablas**: `roles` (slug, nombre, descripción), `permissions` (catálogo), `permission_role` (qué permisos tiene cada rol) y `usuarios.role_id` (FK, `ON DELETE RESTRICT`: un rol con personas no se borra). **Un solo rol por persona** (decisión del usuario, 2026-10-15). IDs UUID como el resto.
+- **Los permisos los define el código** (`App\Support\Permissions`), **los roles el admin** (`/admin/roles`, `RoleController`). Un permiso nuevo = constante en `Permissions` + migración que inserte su fila en `permissions` (nombre y descripción para la pantalla) + el tipo `Permission` de `resources/js/types/index.ts`. `RolesTest` verifica que el código y la tabla coincidan.
+- **Cómo se revisan**: cada permiso es un Gate (`AppServiceProvider::configurePermissions`): en rutas `->middleware('can:'.Permissions::X)`, en PHP `$user->can(...)`, en React `const { can } = useAuth(); can('galera.gestionar')`. **No volver a preguntar `role === 'admin'`** para algo que pueda ser un permiso.
+- **Permisos actuales**: `analiticas.ver`, `galera.gestionar`, `politica.gestionar`, `canciones.eliminar`, `canciones.nossa` (lo que antes era solo de admin; el sitio se comporta igual que antes).
+- **`admin` es especial**: pasa todos los Gates (`Gate::before`), no tiene filas en `permission_role`, no se edita ni se elimina. **Gestionar usuarios y roles no es un permiso asignable**: queda solo para admin (middleware `admin`), así nadie puede darse más permisos. `member` se edita pero no se elimina. El slug se genera del nombre al crear y no cambia.
+- En Gestión de Usuarios el rol viaja como su **slug** (`role`), validado contra `roles.slug`. La relación del modelo se llama **`rol`** (no `role`: chocaría con la columna vieja).
+- **Transición pendiente**: la columna vieja `usuarios.role` (ENUM) se conserva y `User::booted()` la mantiene al día (`admin` o `member`), para que si la publicación falla y el servidor vuelve solo a la versión anterior, ese código siga funcionando. `role_id` todavía admite NULL por lo mismo. **En la publicación siguiente** se borra `role` (el usuario confirmó que nadie más la usa), se quita la sincronización y `role_id` pasa a NOT NULL.
 
 ### Qué se quitó del kit (a propósito)
 
@@ -69,14 +81,14 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 
 ## Contenido (fase 3)
 
-- **Sabiá cantou** (`SongController`, página `canciones`): ver/crear/editar → cualquier sesión; borrar → admin. `nossa`: al crear la marca cualquiera; al editar solo un admin la cambia (si la manda un miembro se ignora). Los ritmos van en `tags` (lista JSON).
-- **Galera** (`GaleraController`, página `galera`, pestañas `?tab=rodas|cantorias`): agregar/eliminar rodas y cantorias y sincronizar con YouTube → solo admin. `/rodas` redirige a `/galera`.
+- **Sabiá cantou** (`SongController`, página `canciones`): ver/crear/editar → cualquier sesión; borrar → permiso `canciones.eliminar`. `nossa`: al crear la marca cualquiera; al editar solo la cambia quien tenga `canciones.nossa` (si no, se ignora). Los ritmos van en `tags` (lista JSON).
+- **Galera** (`GaleraController`, página `galera`, pestañas `?tab=rodas|cantorias`): agregar/eliminar rodas y cantorias y sincronizar con YouTube → permiso `galera.gestionar`. `/rodas` redirige a `/galera`.
 - **Sincronización con YouTube** (`App\Services\YouTubePlaylist`): recorre todas las páginas de la playlist, saltea los videos ya guardados (comparando el ID de 11 caracteres extraído de `video_url`, `App\Support\VideoUrl`) y los privados/eliminados (sin miniaturas). Variables: `YOUTUBE_API_KEY`, `YOUTUBE_PLAYLIST_ID` (rodas), `YOUTUBE_CANTORIAS_PLAYLIST_ID`. Sigue siendo **manual** (decisión de producto heredada: se descartó el cron). En tests se simula con `Http::fake`.
 - El resultado de acciones como la sincronización llega como flash `success` / `error`.
 
 ## Política (fase 4)
 
-- **Documentos** (`PoliticaController`, página `politica`): ver → cualquier sesión; crear/editar/eliminar → admin. Categorías fijas (`PoliticaController::CATEGORIES`). Las tarjetas de "Manual de Convivencia" y "Cordas y Graduación" abren las páginas propias (`/politica/manual`, `/politica/cordas`), no un archivo.
+- **Documentos** (`PoliticaController`, página `politica`): ver → cualquier sesión; crear/editar/eliminar → permiso `politica.gestionar`. Categorías fijas (`PoliticaController::CATEGORIES`). Las tarjetas de "Manual de Convivencia" y "Cordas y Graduación" abren las páginas propias (`/politica/manual`, `/politica/cordas`), no un archivo.
 - **Archivos subidos** (`App\Support\Uploads`): se guardan en **`storage/app/uploads/<carpeta>/`** (fuera de `public/`, configurable en `config/filesystems.php` → `uploads_root`) como `<ms>_<nombre_seguro>.<ext>`, y se entregan con la ruta **`GET /uploads/{path}`** (`UploadController`, **exige sesión**). La URL es la **misma del sitio anterior**, así los `file_url` ya guardados siguen andando. **No mover los archivos a `public/`**: lo que está ahí lo sirve el servidor web directo, sin login (en el sitio Next los PDFs sí pasaban por el filtro de sesión), y en un hosting PHP un archivo subido en una carpeta pública podría ejecutarse. El archivo viaja en la **misma petición** que el documento y la URL la decide el servidor (el sitio anterior aceptaba cualquier `file_url` del navegador). Con archivo, editar va como `POST` + `_method=put` (PHP no parsea multipart en un PUT real).
 - **Seguridad de subidas**: solo `pdf, doc, docx, txt, jpg, jpeg, png, webp`, validando extensión **y contenido real** (`extensions` + `mimes`), máx 20 MB. Borrar y descargar solo actúan dentro de la carpeta de subidas (`Uploads::pathFor` resuelve `realpath`). Reemplazar o quitar el archivo de un documento borra el anterior del disco.
 - En tests, `PoliticaTest` apunta `filesystems.uploads_root` a una carpeta temporal; para probar archivos disfrazados usa archivos reales en disco (los `UploadedFile::fake()` declaran el tipo por la extensión, no por el contenido).
@@ -85,7 +97,7 @@ Fortify, registro público, verificación de email, 2FA, passkeys, páginas de a
 ## Analíticas y páginas de ejemplo (fase 5)
 
 - **Registro de visitas en el servidor** (`App\Http\Middleware\TrackPageView`, en el grupo `web`): al entregar una página (GET 2xx, HTML o visita de Inertia) guarda `path` (sin query), `user_id` (o null sin sesión, ej. `/auth/login`) y `created_at`. No cuenta redirecciones, errores, acciones (POST/PUT/DELETE), recargas parciales de Inertia, prefetch ni `/up`. Si falla el insert, se reporta y la página igual responde. **Cambio deliberado respecto del sitio anterior**: allá lo hacía el navegador con un POST a un endpoint **público** (`/api/analytics/pageview`) que cualquiera podía llamar con rutas inventadas; ese endpoint ya no existe.
-- **Panel** `/admin/analytics` (`Admin\AnalyticsController`, solo admin): totales, usuarios distintos, top 15 páginas y visitas por día de los últimos 30 días. El agrupado por día se hace en PHP en UTC (no con `DATE()` de MySQL), por el gotcha de husos horarios.
+- **Panel** `/admin/analytics` (`Admin\AnalyticsController`, permiso `analiticas.ver`): totales, usuarios distintos, top 15 páginas y visitas por día de los últimos 30 días. El agrupado por día se hace en PHP en UTC (no con `DATE()` de MySQL), por el gotcha de husos horarios.
 - **Artículos, movimientos y portugués** (`/articulos`, `/movimientos`, `/portugues`): páginas con contenido fijo de ejemplo, igual que en el sitio anterior. Sus tablas (`articles`, `movements`, `portuguese_*`) existen pero todavía no tienen backend.
 
 ## Páginas de error (fase 5.1)
@@ -152,5 +164,7 @@ Si algo falla: parar, mostrar el error, corregir y volver a correr todo antes de
 - ✅ Fase 0: proyecto base. Fase 1: base de datos. Fase 2: auth, perfil y gestión de usuarios. Fase 3: canciones, galera y sync con YouTube. Fase 4: política, cordas y manual. Fase 5: analíticas y páginas de ejemplo. Fase 5.1: páginas de error. Fase 5.2: auditoría (ver `docs/auditoria-2026-10-07.md`; todas las decisiones P1–P7 tomadas y aplicadas: P5 (CSP) postergada y P6 (`songs.user_id`) descartada, a propósito).
 - ✅ Fase 6: publicación automática con GitHub Actions (ver "Publicación").
 - ✅ Fase 7 (2026-10-08): **gaiacapoeira.com sirve el sitio Laravel.** En hPanel se quitó la app Node.js y se creó un sitio PHP vacío (8.3); su `public_html` es un enlace a `current/public`. `APP_URL` y `SITE_URL` apuntan a `https://gaiacapoeira.com`. PDFs de política copiados a `shared/storage/app/uploads/politica/`.
+- ✅ Fase 8 (2026-10-15): roles y permisos + Gestión de Roles (ver "Roles y permisos"). Falta el paso final de la transición (borrar `usuarios.role`).
+- ⏳ Fase 9: calendario de eventos (ver: cualquier sesión; crear: permiso nuevo `eventos.gestionar`; cada quien edita/borra solo los suyos; eventos recurrentes por días de la semana entre dos fechas; hora de Colombia). Plan detallado pendiente de aprobación.
 - **Base de datos**: se recreó desde el sitio `gaiacapoeira.com` en hPanel (mismo nombre `u762014524_gaiacapoeira`, contraseña nueva solo alfanumérica) para que quede asociada al dominio y no al subdominio. `DB_HOST=localhost`. El acceso remoto (`%`) lo maneja el usuario: lo usa otra persona que trabaja directo sobre producción; el sitio no lo necesita.
 - El subdominio de prueba `nuevo.gaiacapoeira.com` se eliminó (2026-10-08) junto con los restos de la etapa de prueba en el servidor. La base de datos tiene respaldos automáticos en el plan de Hostinger.

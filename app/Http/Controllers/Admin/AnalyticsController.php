@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Panel de analíticas propias (solo admin). */
+/** Panel de analíticas propias (permiso `analiticas.ver`). */
 class AnalyticsController extends Controller
 {
     private const DAYS = 30;

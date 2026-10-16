@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,15 +12,17 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Gestión de usuarios (solo admin): listar, crear, editar y eliminar. */
+/**
+ * Gestión de usuarios (solo admin): listar, crear, editar y eliminar. El rol
+ * viaja como su slug (`role`), igual que cuando era 'admin' | 'member'.
+ */
 class UserController extends Controller
 {
-    private const PUBLIC_FIELDS = ['id', 'username', 'name', 'email', 'role', 'apodo', 'avatar'];
-
     public function index(): Response
     {
         return Inertia::render('admin/usuarios', [
-            'users' => User::orderBy('created_at')->get(self::PUBLIC_FIELDS),
+            'users' => User::orderBy('created_at')->get()->map(fn (User $u) => $u->toPublicArray()),
+            'roles' => Role::orderBy('name')->get(['slug', 'name']),
         ]);
     }
 
@@ -38,7 +41,7 @@ class UserController extends Controller
             'password_hash' => $data['password'],
             'name' => $data['name'],
             'email' => ($data['email'] ?? null) ?: null,
-            'role' => $data['role'],
+            'role_id' => Role::idFor($data['role']),
             'apodo' => ($data['apodo'] ?? null) ?: null,
         ]);
 
@@ -55,7 +58,7 @@ class UserController extends Controller
         // Un admin no puede quitarse su propio rol (auditoría P4): junto con
         // no poder eliminarse a sí mismo, garantiza que siempre quede al
         // menos un admin (el que está haciendo los cambios).
-        if ($request->user()->is($user) && $data['role'] !== 'admin') {
+        if ($request->user()->is($user) && $data['role'] !== Role::ADMIN) {
             throw ValidationException::withMessages([
                 'role' => 'No puedes quitarte tu propio rol de administrador',
             ]);
@@ -64,7 +67,7 @@ class UserController extends Controller
         $updates = [
             'name' => $data['name'],
             'email' => ($data['email'] ?? null) ?: null,
-            'role' => $data['role'],
+            'role_id' => Role::idFor($data['role']),
             'apodo' => ($data['apodo'] ?? null) ?: null,
         ];
 
@@ -94,7 +97,7 @@ class UserController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
-            'role' => ['required', Rule::in(['admin', 'member'])],
+            'role' => ['required', 'string', Rule::exists('roles', 'slug')],
             'apodo' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -108,7 +111,7 @@ class UserController extends Controller
             'password.required' => 'La contraseña es obligatoria para nuevos usuarios',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres',
             'name.required' => 'Usuario, contraseña, nombre y rol son obligatorios',
-            'role.in' => 'Rol inválido',
+            'role.exists' => 'Rol inválido',
             'email.email' => 'El email no es válido',
         ];
     }

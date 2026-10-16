@@ -11,11 +11,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
 import { CORDAS, getCordaSrc } from '@/lib/constants/cordas';
 
-const ROLE_LABELS: Record<string, string> = {
-    admin: 'Administrador',
-    member: 'Miembro',
-};
-
 /** Muestra un aviso de "guardado" por unos segundos. */
 function useFlag(ms: number) {
     const [on, setOn] = useState(false);
@@ -145,7 +140,7 @@ export default function Perfil() {
                             <div className="mt-2 flex items-center justify-center gap-2">
                                 <Award className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-primary">
-                                    {ROLE_LABELS[user.role] ?? user.role}
+                                    {user.role_name}
                                 </span>
                             </div>
                         </CardHeader>

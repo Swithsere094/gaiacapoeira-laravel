@@ -32,7 +32,7 @@ class AdminUsersTest extends TestCase
         $this->delete("/admin/usuarios/{$other->id}")->assertForbidden();
 
         $this->assertDatabaseHas('usuarios', ['id' => $other->id]);
-        $this->assertSame('member', $member->fresh()->role);
+        $this->assertSame('member', $member->fresh()->rol->slug);
     }
 
     public function test_lista_los_usuarios_sin_exponer_hashes(): void
@@ -43,7 +43,7 @@ class AdminUsersTest extends TestCase
         $this->get('/admin/usuarios')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('admin/usuarios')
             ->has('users', 3, fn (Assert $u) => $u
-                ->hasAll(['id', 'username', 'name', 'email', 'role', 'apodo', 'avatar'])
+                ->hasAll(['id', 'username', 'name', 'email', 'role', 'role_name', 'apodo', 'avatar'])
                 ->missing('password_hash')
             )
         );
@@ -58,7 +58,7 @@ class AdminUsersTest extends TestCase
         $created = User::where('username', 'mariabatizado')->first();
         $this->assertNotNull($created);
         $this->assertTrue(Hash::check('clave123', $created->password_hash));
-        $this->assertSame('member', $created->role);
+        $this->assertSame('member', $created->rol->slug);
     }
 
     public function test_no_permite_usernames_repetidos(): void
@@ -91,7 +91,7 @@ class AdminUsersTest extends TestCase
 
         $fresh = $user->fresh();
         $this->assertSame('Nuevo Nombre', $fresh->name);
-        $this->assertSame('admin', $fresh->role);
+        $this->assertSame('admin', $fresh->rol->slug);
         $this->assertNull($fresh->email);
         $this->assertTrue(Hash::check('original1', $fresh->password_hash));
     }
@@ -149,7 +149,7 @@ class AdminUsersTest extends TestCase
         $this->put("/admin/usuarios/{$admin->id}", ['name' => 'Yo', 'role' => 'member'])
             ->assertSessionHasErrors(['role' => 'No puedes quitarte tu propio rol de administrador']);
 
-        $this->assertSame('admin', $admin->fresh()->role);
+        $this->assertSame('admin', $admin->fresh()->rol->slug);
 
         // Sí puede editar el resto de sus datos manteniendo el rol.
         $this->put("/admin/usuarios/{$admin->id}", ['name' => 'Yo', 'role' => 'admin'])->assertSessionHasNoErrors();
@@ -159,11 +159,11 @@ class AdminUsersTest extends TestCase
     public function test_un_admin_si_puede_quitarle_el_rol_a_otro_admin(): void
     {
         $this->actingAsRole('admin');
-        $otro = User::factory()->create(['role' => 'admin']);
+        $otro = User::factory()->admin()->create();
 
         $this->put("/admin/usuarios/{$otro->id}", ['name' => $otro->name, 'role' => 'member'])->assertSessionHasNoErrors();
 
-        $this->assertSame('member', $otro->fresh()->role);
+        $this->assertSame('member', $otro->fresh()->rol->slug);
     }
 
     public function test_editar_un_usuario_inexistente_da_404(): void

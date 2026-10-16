@@ -13,7 +13,7 @@ use Inertia\Response;
 
 /**
  * Documentos de política interna. Ver: cualquier usuario. Crear, editar y
- * eliminar: solo admin.
+ * eliminar: permiso `politica.gestionar`.
  *
  * A diferencia del sitio anterior (subir el archivo en una petición y después
  * guardar la URL que mandaba el navegador), el archivo viaja en la misma

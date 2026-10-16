@@ -75,9 +75,10 @@ const EMPTY_FORM = {
 };
 
 export default function CancionesPage({ songs }: { songs: Song[] }) {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const { confirm, notify } = useConfirm();
-    const isAdmin = user?.role === 'admin';
+    const canDelete = can('canciones.eliminar');
+    const canEditNossa = can('canciones.nossa');
 
     // Las canciones llegan como props de Inertia (ya cargadas por el servidor):
     // no hay estado de "cargando" ni de error de carga como en el sitio Next.
@@ -357,7 +358,7 @@ export default function CancionesPage({ songs }: { songs: Song[] }) {
                             nossa={song.nossa}
                             onEdit={() => openEdit(song)}
                             onDelete={
-                                isAdmin
+                                canDelete
                                     ? () => handleDelete(song.id)
                                     : undefined
                             }
@@ -483,10 +484,10 @@ export default function CancionesPage({ songs }: { songs: Song[] }) {
                             />
                         </div>
 
-                        {/* Nossa — al crear la marca cualquiera; al editar, solo admin
-                (la API ignora el cambio si no es admin, esto solo lo refleja). */}
+                        {/* Nossa — al crear la marca cualquiera; al editar, solo con permiso
+                (el servidor ignora el cambio sin el permiso, esto solo lo refleja). */}
                         {(() => {
-                            const locked = !!editingSong && !isAdmin;
+                            const locked = !!editingSong && !canEditNossa;
                             return (
                                 <div className="flex items-start gap-3 rounded-lg border border-border p-3">
                                     <Checkbox
