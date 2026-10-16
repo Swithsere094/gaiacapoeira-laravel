@@ -14,6 +14,7 @@ import {
     Users,
     ShieldCheck,
     BarChart3,
+    KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getCordaSrc } from '@/lib/constants/cordas';
@@ -75,7 +76,8 @@ export function Navigation() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const { user, loading, signOut } = useAuth();
+    const { user, loading, signOut, can, isAdmin } = useAuth();
+    const canViewAnalytics = can('analiticas.ver');
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 0);
@@ -179,9 +181,11 @@ export function Navigation() {
                                                     Mi Perfil
                                                 </Link>
                                             </DropdownMenuItem>
-                                            {user.role === 'admin' && (
+                                            {(isAdmin || canViewAnalytics) && (
+                                                <DropdownMenuSeparator />
+                                            )}
+                                            {isAdmin && (
                                                 <>
-                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem asChild>
                                                         <Link
                                                             href="/admin/usuarios"
@@ -191,6 +195,19 @@ export function Navigation() {
                                                             Gestionar Usuarios
                                                         </Link>
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link
+                                                            href="/admin/roles"
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <KeyRound className="mr-2 h-4 w-4" />
+                                                            Gestionar Roles
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                            {canViewAnalytics && (
+                                                <>
                                                     <DropdownMenuItem asChild>
                                                         <Link
                                                             href="/admin/analytics"
@@ -294,7 +311,7 @@ export function Navigation() {
                                                 <User className="h-5 w-5" />
                                                 Mi Perfil
                                             </Link>
-                                            {user.role === 'admin' && (
+                                            {isAdmin && (
                                                 <>
                                                     <Link
                                                         href="/admin/usuarios"
@@ -308,6 +325,22 @@ export function Navigation() {
                                                         <ShieldCheck className="h-5 w-5" />
                                                         Gestionar Usuarios
                                                     </Link>
+                                                    <Link
+                                                        href="/admin/roles"
+                                                        onClick={() =>
+                                                            setMobileMenuOpen(
+                                                                false,
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-foreground"
+                                                    >
+                                                        <KeyRound className="h-5 w-5" />
+                                                        Gestionar Roles
+                                                    </Link>
+                                                </>
+                                            )}
+                                            {canViewAnalytics && (
+                                                <>
                                                     <Link
                                                         href="/admin/analytics"
                                                         onClick={() =>

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Support\Permissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Carbon;
 
@@ -15,16 +17,22 @@ use Illuminate\Support\Carbon;
  * `Hash::check` de Laravel los verifica sin conversión; al iniciar sesión
  * Laravel los re-hashea solo si cambia el costo configurado.
  *
+ * El rol sale de `role_id` (relación `rol`, tabla `roles`). La columna vieja
+ * `role` ('admin' | 'member') se mantiene al día solo durante la transición
+ * (ver la migración create_roles_and_permissions): no leerla.
+ *
  * @property string $id
  * @property string $username
  * @property string $password_hash
  * @property string $name
  * @property string|null $email
- * @property 'admin'|'member' $role
+ * @property 'admin'|'member' $role columna vieja, en transición
+ * @property string|null $role_id
  * @property string|null $apodo
  * @property string|null $avatar
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read Role|null $rol
  */
 class User extends Authenticatable
 {
@@ -42,9 +50,12 @@ class User extends Authenticatable
      */
     protected $rememberTokenName = '';
 
-    protected $fillable = ['username', 'password_hash', 'name', 'email', 'role', 'apodo', 'avatar'];
+    protected $fillable = ['username', 'password_hash', 'name', 'email', 'role_id', 'apodo', 'avatar'];
 
     protected $hidden = ['password_hash'];
+
+    /** El rol se usa en casi cada petición (permisos, navegación). */
+    protected $with = ['rol'];
 
     protected function casts(): array
     {
@@ -53,8 +64,56 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Transición: la versión anterior del sitio todavía lee `role`.
+        static::saving(function (User $user) {
+            if ($user->isDirty('role_id')) {
+                $user->role = Role::whereKey($user->role_id)->value('slug') === Role::ADMIN ? 'admin' : 'member';
+            }
+        });
+    }
+
+    /** @return BelongsTo<Role, $this> */
+    public function rol(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->rol?->isAdmin() ?? false;
+    }
+
+    /** El admin tiene todos; el resto, los de su rol. */
+    public function hasPermission(string $permission): bool
+    {
+        return in_array($permission, $this->permissions(), true);
+    }
+
+    /** @return list<string> */
+    public function permissions(): array
+    {
+        if ($this->isAdmin()) {
+            return Permissions::ALL;
+        }
+
+        return array_values($this->rol?->permissions->map(fn (Permission $p) => $p->slug)->all() ?? []);
+    }
+
+    /**
+     * Campos públicos (misma forma que `AppUser` del sitio original): el rol
+     * va como `role` (su slug) y `role_name` (su nombre visible).
+     *
+     * @return array<string, mixed>
+     */
+    public function toPublicArray(): array
+    {
+        return [
+            ...$this->only(['id', 'username', 'name', 'email']),
+            'role' => $this->rol->slug ?? Role::MEMBER,
+            'role_name' => $this->rol->name ?? 'Miembro',
+            ...$this->only(['apodo', 'avatar']),
+        ];
     }
 }

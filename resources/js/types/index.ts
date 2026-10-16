@@ -4,11 +4,24 @@ export interface AppUser {
     username: string;
     name: string;
     email: string | null;
-    role: 'admin' | 'member';
+    /** Slug del rol (`admin`, `member` o uno creado en Gestión de Roles). */
+    role: string;
+    /** Nombre visible del rol. */
+    role_name: string;
     apodo: string | null;
     avatar: string | null;
 }
 
+/** Permisos del catálogo (App\Support\Permissions). */
+export type Permission =
+    | 'analiticas.ver'
+    | 'galera.gestionar'
+    | 'politica.gestionar'
+    | 'canciones.eliminar'
+    | 'canciones.nossa';
+
 export interface Auth {
     user: AppUser | null;
+    /** Lo que puede hacer la persona con sesión (el admin, todos). */
+    permissions: Permission[];
 }

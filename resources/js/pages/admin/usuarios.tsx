@@ -50,21 +50,25 @@ const EMPTY_FORM = {
     username: '',
     name: '',
     email: '',
-    role: 'member' as 'admin' | 'member',
+    role: 'member',
     apodo: '',
     password: '',
     passwordConfirm: '',
 };
 
-const roleLabels = { admin: 'Administrador', member: 'Miembro' };
-// text-foreground (no text-primary): bg-primary/20 + text-primary no cumple
-// el contraste mínimo de WCAG AA.
-const roleColors = {
-    admin: 'bg-primary/20 text-foreground',
-    member: 'bg-secondary text-secondary-foreground',
-};
+/** Roles para el selector (los de Gestión de Roles). */
+interface RoleOption {
+    slug: string;
+    name: string;
+}
 
-export default function AdminUsuarios({ users }: { users: AppUser[] }) {
+export default function AdminUsuarios({
+    users,
+    roles,
+}: {
+    users: AppUser[];
+    roles: RoleOption[];
+}) {
     const { user } = useAuth();
     const { confirm, notify } = useConfirm();
 
@@ -232,10 +236,14 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                         <span
                                             className={cn(
                                                 'rounded px-2 py-0.5 text-xs font-medium',
-                                                roleColors[u.role],
+                                                // text-foreground (no text-primary): bg-primary/20 +
+                                                // text-primary no cumple el contraste de WCAG AA.
+                                                u.role === 'admin'
+                                                    ? 'bg-primary/20 text-foreground'
+                                                    : 'bg-secondary text-secondary-foreground',
                                             )}
                                         >
-                                            {roleLabels[u.role]}
+                                            {u.role_name}
                                         </span>
                                         {u.id === user.id && (
                                             <span className="text-xs text-muted-foreground">
@@ -352,7 +360,7 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                             <Label htmlFor="role">Rol *</Label>
                             <Select
                                 value={form.data.role}
-                                onValueChange={(v: 'admin' | 'member') =>
+                                onValueChange={(v: string) =>
                                     form.setData('role', v)
                                 }
                                 disabled={form.processing || editingSelf}
@@ -361,12 +369,11 @@ export default function AdminUsuarios({ users }: { users: AppUser[] }) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="member">
-                                        Miembro
-                                    </SelectItem>
-                                    <SelectItem value="admin">
-                                        Administrador
-                                    </SelectItem>
+                                    {roles.map((r) => (
+                                        <SelectItem key={r.slug} value={r.slug}>
+                                            {r.name}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             {editingSelf && (

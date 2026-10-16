@@ -70,9 +70,9 @@ const EMPTY_FORM = {
 };
 
 export default function PoliticaPage({ docs }: { docs: PoliticaDoc[] }) {
-    const { user } = useAuth();
+    const { can } = useAuth();
     const { confirm, notify } = useConfirm();
-    const isAdmin = user?.role === 'admin';
+    const canManage = can('politica.gestionar');
 
     // Los documentos llegan como props de Inertia (ya cargados por el
     // servidor): no hay estado de "cargando" ni de error de carga.
@@ -227,7 +227,7 @@ export default function PoliticaPage({ docs }: { docs: PoliticaDoc[] }) {
                         </button>
                     ))}
                 </div>
-                {isAdmin && (
+                {canManage && (
                     <Button onClick={openAdd} className="shrink-0 gap-2">
                         <Plus className="h-4 w-4" />
                         Nuevo documento
@@ -376,7 +376,7 @@ export default function PoliticaPage({ docs }: { docs: PoliticaDoc[] }) {
 
                                     {/* Actions — solo admin. relative z-10 para quedar por
                       encima del "stretched button" del título de arriba. */}
-                                    {isAdmin && (
+                                    {canManage && (
                                         <div className="relative z-10 flex shrink-0 items-center gap-1">
                                             <button
                                                 type="button"

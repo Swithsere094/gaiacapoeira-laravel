@@ -105,6 +105,6 @@ class ProfileTest extends TestCase
         // El perfil ignora cualquier campo que no le corresponde.
         $this->put('/perfil/apodo', ['apodo' => 'x', 'role' => 'admin']);
 
-        $this->assertSame('member', $user->fresh()->role);
+        $this->assertSame('member', $user->fresh()->rol->slug);
     }
 }

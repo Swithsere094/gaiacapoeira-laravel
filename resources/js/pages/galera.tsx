@@ -108,9 +108,9 @@ export default function GaleraContent({
         | 'rodas'
         | 'cantorias';
 
-    const { user } = useAuth();
+    const { can } = useAuth();
     const { confirm, notify } = useConfirm();
-    const isAdmin = user?.role === 'admin';
+    const canManage = can('galera.gestionar');
     const { flash } = usePage().props;
 
     // Rodas y cantorias llegan como props de Inertia (ya cargadas por el
@@ -347,7 +347,7 @@ export default function GaleraContent({
                                                 : ''}
                                         </span>
                                     )}
-                                    {isAdmin && (
+                                    {canManage && (
                                         <>
                                             {/* Sync con YouTube */}
                                             <Button
@@ -481,7 +481,7 @@ export default function GaleraContent({
                                                                     0
                                                                 }
                                                                 onDelete={
-                                                                    isAdmin
+                                                                    canManage
                                                                         ? () =>
                                                                               handleDeleteRoda(
                                                                                   roda.id,
@@ -503,7 +503,7 @@ export default function GaleraContent({
                     {activeTab === 'cantorias' && (
                         <div>
                             {/* Toolbar */}
-                            {isAdmin && (
+                            {canManage && (
                                 <div className="mb-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                                     <div className="ml-auto flex flex-wrap items-center gap-2">
                                         <Button
@@ -577,7 +577,7 @@ export default function GaleraContent({
                                         <p className="text-lg text-muted-foreground">
                                             Aún no hay cantorias registradas.
                                         </p>
-                                        {isAdmin && (
+                                        {canManage && (
                                             <Button
                                                 className="mt-4 gap-2"
                                                 onClick={() => {
@@ -652,7 +652,7 @@ export default function GaleraContent({
                                                             </a>
                                                         )}
                                                     </div>
-                                                    {isAdmin && (
+                                                    {canManage && (
                                                         <button
                                                             onClick={() =>
                                                                 handleDeleteCantoria(

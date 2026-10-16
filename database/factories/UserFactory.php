@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,7 +19,7 @@ class UserFactory extends Factory
             'password_hash' => 'password',
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => 'member',
+            'role_id' => fn () => Role::idFor(Role::MEMBER),
             'apodo' => null,
             'avatar' => null,
         ];
@@ -26,6 +27,12 @@ class UserFactory extends Factory
 
     public function admin(): static
     {
-        return $this->state(fn () => ['role' => 'admin']);
+        return $this->withRole(Role::ADMIN);
+    }
+
+    /** Con el rol de ese slug (los roles base los crea la migración). */
+    public function withRole(string $slug): static
+    {
+        return $this->state(fn () => ['role_id' => Role::idFor($slug)]);
     }
 }

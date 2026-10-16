@@ -15,7 +15,7 @@ use Throwable;
 /**
  * Galera: rodas (videos de eventos) y cantorias (videos de canto).
  * Ver y buscar: cualquier usuario. Agregar, eliminar y sincronizar con
- * YouTube: solo admin (rutas bajo el middleware `admin`).
+ * YouTube: permiso `galera.gestionar` (middleware `can:` en las rutas).
  */
 class GaleraController extends Controller
 {

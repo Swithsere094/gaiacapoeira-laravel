@@ -15,10 +15,10 @@ abstract class TestCase extends BaseTestCase
         $this->withoutVite();
     }
 
-    /** Inicia sesión como un usuario nuevo con el rol pedido. */
+    /** Inicia sesión como un usuario nuevo con el rol pedido (su slug). */
     protected function actingAsRole(string $role = 'member', array $attributes = []): User
     {
-        $user = User::factory()->create(['role' => $role, ...$attributes]);
+        $user = User::factory()->withRole($role)->create($attributes);
         $this->actingAs($user);
 
         return $user;

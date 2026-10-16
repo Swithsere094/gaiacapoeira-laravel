@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\GaleraController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\UploadController;
+use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
 
 // ── Público (sin sesión) ─────────────────────────────────────────────
@@ -32,12 +34,12 @@ Route::middleware('auth')->group(function () {
     Route::put('perfil/apodo', [ProfileController::class, 'updateApodo']);
     Route::put('perfil/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:6,1');
 
-    // Sabiá cantou: cualquier usuario ve, crea y edita; borrar es de admin.
+    // Sabiá cantou: cualquier usuario ve, crea y edita; borrar pide permiso.
     Route::get('canciones', [SongController::class, 'index'])->name('canciones');
     Route::post('canciones', [SongController::class, 'store']);
     Route::put('canciones/{song}', [SongController::class, 'update']);
 
-    // Galera: rodas y cantorias (agregar/eliminar/sincronizar es de admin).
+    // Galera: rodas y cantorias (agregar/eliminar/sincronizar pide permiso).
     Route::get('galera', [GaleraController::class, 'index'])->name('galera');
     Route::redirect('rodas', '/galera');
 
@@ -54,25 +56,38 @@ Route::middleware('auth')->group(function () {
     Route::inertia('movimientos', 'movimientos')->name('movimientos');
     Route::inertia('portugues', 'portugues')->name('portugues');
 
-    // ── Solo administradores ─────────────────────────────────────────
-    Route::middleware('admin')->group(function () {
-        Route::delete('canciones/{song}', [SongController::class, 'destroy']);
+    // ── Según los permisos del rol (App\Support\Permissions) ──────────
+    // El admin los tiene todos. Sin el permiso: 403.
+    Route::delete('canciones/{song}', [SongController::class, 'destroy'])->middleware('can:'.Permissions::CANCIONES_ELIMINAR);
 
+    Route::middleware('can:'.Permissions::GALERA_GESTIONAR)->group(function () {
         Route::post('galera/rodas', [GaleraController::class, 'storeRoda']);
         Route::delete('galera/rodas/{roda}', [GaleraController::class, 'destroyRoda']);
         Route::post('galera/rodas/sync', [GaleraController::class, 'syncRodas'])->middleware('throttle:6,1');
         Route::post('galera/cantorias', [GaleraController::class, 'storeCantoria']);
         Route::delete('galera/cantorias/{cantoria}', [GaleraController::class, 'destroyCantoria']);
         Route::post('galera/cantorias/sync', [GaleraController::class, 'syncCantorias'])->middleware('throttle:6,1');
+    });
 
-        // Con archivo adjunto: el formulario manda POST + _method=PUT
-        // (PHP no interpreta multipart en un PUT real).
+    // Con archivo adjunto: el formulario manda POST + _method=PUT
+    // (PHP no interpreta multipart en un PUT real).
+    Route::middleware('can:'.Permissions::POLITICA_GESTIONAR)->group(function () {
         Route::post('politica', [PoliticaController::class, 'store']);
         Route::put('politica/{politica}', [PoliticaController::class, 'update']);
         Route::delete('politica/{politica}', [PoliticaController::class, 'destroy']);
+    });
 
+    Route::get('admin/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics')->middleware('can:'.Permissions::ANALITICAS_VER);
+
+    // ── Solo administradores: usuarios y roles ───────────────────────
+    // No son permisos asignables: así nadie puede darse más permisos.
+    Route::middleware('admin')->group(function () {
         Route::prefix('admin')->group(function () {
-            Route::get('analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
+            Route::get('roles', [RoleController::class, 'index'])->name('admin.roles');
+            Route::post('roles', [RoleController::class, 'store']);
+            Route::put('roles/{role}', [RoleController::class, 'update']);
+            Route::delete('roles/{role}', [RoleController::class, 'destroy']);
+
             Route::get('usuarios', [UserController::class, 'index'])->name('admin.usuarios');
             Route::post('usuarios', [UserController::class, 'store']);
             Route::put('usuarios/{user}', [UserController::class, 'update']);

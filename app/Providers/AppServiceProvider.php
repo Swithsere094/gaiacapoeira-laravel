@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Support\Permissions;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +27,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configurePermissions();
+    }
+
+    /**
+     * Cada permiso del catálogo es un Gate (`$user->can(...)`, middleware
+     * `can:...`). El admin pasa todos.
+     */
+    protected function configurePermissions(): void
+    {
+        Gate::before(fn (User $user) => $user->isAdmin() ? true : null);
+
+        foreach (Permissions::ALL as $permission) {
+            Gate::define($permission, fn (User $user) => $user->hasPermission($permission));
+        }
     }
 
     /**

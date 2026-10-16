@@ -40,7 +40,7 @@ class AuthTest extends TestCase
 
         $this->get('/')->assertInertia(fn (Assert $page) => $page
             ->has('auth.user', fn (Assert $user) => $user
-                ->hasAll(['id', 'username', 'name', 'email', 'role', 'apodo', 'avatar'])
+                ->hasAll(['id', 'username', 'name', 'email', 'role', 'role_name', 'apodo', 'avatar'])
                 ->missing('password_hash')
             )
         );
