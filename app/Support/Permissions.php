@@ -27,11 +27,15 @@ final class Permissions
 
     public const CANCIONES_NOSSA = 'canciones.nossa';
 
+    /** Crear eventos; editar y eliminar los propios (EventoPolicy). */
+    public const EVENTOS_GESTIONAR = 'eventos.gestionar';
+
     public const ALL = [
         self::ANALITICAS_VER,
         self::GALERA_GESTIONAR,
         self::POLITICA_GESTIONAR,
         self::CANCIONES_ELIMINAR,
         self::CANCIONES_NOSSA,
+        self::EVENTOS_GESTIONAR,
     ];
 }

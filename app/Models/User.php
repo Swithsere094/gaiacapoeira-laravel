@@ -17,17 +17,15 @@ use Illuminate\Support\Carbon;
  * `Hash::check` de Laravel los verifica sin conversión; al iniciar sesión
  * Laravel los re-hashea solo si cambia el costo configurado.
  *
- * El rol sale de `role_id` (relación `rol`, tabla `roles`). La columna vieja
- * `role` ('admin' | 'member') se mantiene al día solo durante la transición
- * (ver la migración create_roles_and_permissions): no leerla.
+ * El rol sale de `role_id` (relación `rol`, tabla `roles`; se llama `rol`
+ * porque `role` fue una columna ENUM hasta la fase 9).
  *
  * @property string $id
  * @property string $username
  * @property string $password_hash
  * @property string $name
  * @property string|null $email
- * @property 'admin'|'member' $role columna vieja, en transición
- * @property string|null $role_id
+ * @property string $role_id
  * @property string|null $apodo
  * @property string|null $avatar
  * @property Carbon $created_at
@@ -62,16 +60,6 @@ class User extends Authenticatable
         return [
             'password_hash' => 'hashed',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        // Transición: la versión anterior del sitio todavía lee `role`.
-        static::saving(function (User $user) {
-            if ($user->isDirty('role_id')) {
-                $user->role = Role::whereKey($user->role_id)->value('slug') === Role::ADMIN ? 'admin' : 'member';
-            }
-        });
     }
 
     /** @return BelongsTo<Role, $this> */

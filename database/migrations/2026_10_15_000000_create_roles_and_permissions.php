@@ -18,10 +18,9 @@ use Illuminate\Support\Str;
  *
  * El rol `admin` no necesita filas en `permission_role`: tiene todo siempre.
  *
- * Transición: la columna vieja `usuarios.role` se conserva (y el modelo la
- * mantiene al día) hasta la próxima publicación. Si la publicación falla y
- * el servidor vuelve solo a la versión anterior, ese código sigue leyendo
- * `role` y funciona. Por eso `role_id` todavía admite NULL.
+ * Transición: la columna vieja `usuarios.role` se conservó (al día) por una
+ * publicación, por si el servidor volvía solo a la versión anterior. La
+ * borra drop_legacy_usuarios_role, que también deja `role_id` NOT NULL.
  */
 return new class extends Migration
 {

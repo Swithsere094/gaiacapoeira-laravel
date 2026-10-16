@@ -18,7 +18,8 @@ export type Permission =
     | 'galera.gestionar'
     | 'politica.gestionar'
     | 'canciones.eliminar'
-    | 'canciones.nossa';
+    | 'canciones.nossa'
+    | 'eventos.gestionar';
 
 export interface Auth {
     user: AppUser | null;
