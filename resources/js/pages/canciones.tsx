@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SectionLayout } from '@/components/section-layout';
 import { SongCard } from '@/components/song-card';
 import { Music, Filter, Plus, Loader2, Search, X, Star } from 'lucide-react';
@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { usePathname, useSearchParams } from '@/lib/navigation';
 
 interface Song {
     id: string;
@@ -88,6 +89,38 @@ export default function CancionesPage({ songs }: { songs: Song[] }) {
     const [selectedType, setSelectedType] = useState('all');
     const [onlyNossas, setOnlyNossas] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Enlace compartido (/canciones?cancion=<id>): esa canción se abre sola al
+    // entrar. Si no se tiene sesión, el login devuelve a esta misma dirección
+    // (redirect()->intended). Se lee una sola vez, al montar.
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [sharedId] = useState(() => searchParams.get('cancion'));
+
+    // Quita ?cancion= de la dirección (sin pedir nada al servidor), para que
+    // una recarga no vuelva a abrir la canción.
+    const clearSharedParam = () => {
+        if (!searchParams.has('cancion')) return;
+        searchParams.delete('cancion');
+        const query = searchParams.toString();
+        router.replace({
+            url: query ? `${pathname}?${query}` : pathname,
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
+
+    useEffect(() => {
+        if (sharedId && !songs.some((s) => s.id === sharedId)) {
+            clearSharedParam();
+            void notify({
+                title: 'Canción no encontrada',
+                description:
+                    'Esta canción ya no existe o el enlace está incompleto.',
+            });
+        }
+        // Solo al entrar a la página con el enlace.
+    }, []);
 
     // Dialog
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -356,6 +389,8 @@ export default function CancionesPage({ songs }: { songs: Song[] }) {
                             mestre={song.mestre ?? ''}
                             ritmos={song.tags ?? []}
                             nossa={song.nossa}
+                            defaultOpen={song.id === sharedId}
+                            onClose={clearSharedParam}
                             onEdit={() => openEdit(song)}
                             onDelete={
                                 canDelete

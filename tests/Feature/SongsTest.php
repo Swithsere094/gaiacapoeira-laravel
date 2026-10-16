@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Song;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -22,6 +23,24 @@ class SongsTest extends TestCase
     {
         $this->get('/canciones')->assertRedirect('/auth/login');
         $this->post('/canciones', $this->valid)->assertRedirect('/auth/login');
+    }
+
+    public function test_el_enlace_compartido_de_una_cancion_sobrevive_al_login(): void
+    {
+        // El botón "Compartir" arma /canciones?cancion=<id>; quien lo abre sin
+        // sesión tiene que volver a esa misma dirección (con el parámetro)
+        // después del login, para que la página abra la canción.
+        User::factory()->create(['username' => 'mestre', 'password_hash' => 'secreto123']);
+        $song = Song::factory()->create();
+        $url = '/canciones?cancion='.$song->id;
+
+        $this->get($url)->assertRedirect('/auth/login');
+        $this->post('/auth/login', ['username' => 'mestre', 'password' => 'secreto123'])
+            ->assertRedirect($url);
+        $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('canciones')
+            ->where('songs.0.id', $song->id)
+        );
     }
 
     public function test_lista_las_canciones_mas_nuevas_primero(): void
