@@ -38,3 +38,6 @@ yarn-error.log
 /opencode.json
 /opencode.jsonc
 
+
+# Usuarios de prueba de la copia local (con contraseñas)
+/database/seeders/LocalTestUsersSeeder.php
