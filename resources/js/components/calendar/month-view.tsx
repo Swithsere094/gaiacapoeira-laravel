@@ -4,6 +4,7 @@ import type { CalendarData, CalendarEvent } from '@/lib/calendar';
 import {
     WEEKDAYS,
     dayOfMonth,
+    formatTime,
     daysBetween,
     eventsByDay,
     longDate,
@@ -121,7 +122,7 @@ export function MonthView({
                                         >
                                             {e.start_time && (
                                                 <span className="mr-1 font-medium">
-                                                    {e.start_time}
+                                                    {formatTime(e.start_time)}
                                                 </span>
                                             )}
                                             {e.title}
