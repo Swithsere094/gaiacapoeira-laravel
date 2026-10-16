@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+    Check,
     Play,
     BookOpen,
     History,
     Maximize2,
     Pencil,
     Trash2,
+    Share2,
     Star,
 } from 'lucide-react';
+import { useConfirm } from '@/components/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { toEmbedUrl } from '@/lib/utils/video-url';
 import {
@@ -30,6 +33,10 @@ export interface SongCardProps {
     nossa?: boolean;
     onEdit?: () => void;
     onDelete?: () => void;
+    /** Abre el modal al montar (la canción llegó por un enlace compartido). */
+    defaultOpen?: boolean;
+    /** Se llama al cerrar el modal. */
+    onClose?: () => void;
 }
 
 type Tab = 'lyrics' | 'translation' | 'history';
@@ -96,7 +103,77 @@ function SongMeta({
     );
 }
 
+/** Enlace directo a la canción: /canciones?cancion=<id> (ver canciones.tsx). */
+export function songShareUrl(id: string): string {
+    return `${window.location.origin}/canciones?cancion=${encodeURIComponent(id)}`;
+}
+
+/**
+ * Comparte el enlace de la canción: en el celular abre el menú de compartir
+ * del sistema; donde no existe, copia el enlace y lo confirma en el botón.
+ */
+function ShareButton({ id, title }: { id: string; title: string }) {
+    const { notify } = useConfirm();
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        if (!copied) return;
+        const timer = setTimeout(() => setCopied(false), 2000);
+
+        return () => clearTimeout(timer);
+    }, [copied]);
+
+    const share = async () => {
+        const url = songShareUrl(id);
+
+        // Solo en pantallas táctiles: en el computador (Chrome en Windows
+        // también tiene navigator.share) es más práctico copiar el enlace.
+        const touch = window.matchMedia('(pointer: coarse)').matches;
+
+        if (touch && navigator.share) {
+            try {
+                await navigator.share({ title, url });
+
+                return;
+            } catch (e) {
+                // La persona cerró el menú: no hay nada más que hacer.
+                if (e instanceof DOMException && e.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+        } catch {
+            await notify({
+                title: 'Copia este enlace',
+                description: url,
+            });
+        }
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={share}
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+            {copied ? (
+                <Check aria-hidden="true" className="h-4 w-4 text-primary" />
+            ) : (
+                <Share2 aria-hidden="true" className="h-4 w-4" />
+            )}
+            <span aria-live="polite">
+                {copied ? 'Enlace copiado' : 'Compartir'}
+            </span>
+        </button>
+    );
+}
+
 export function SongCard({
+    id,
     title,
     type,
     lyrics,
@@ -108,8 +185,10 @@ export function SongCard({
     nossa,
     onEdit,
     onDelete,
+    defaultOpen = false,
+    onClose,
 }: SongCardProps) {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(defaultOpen);
     const [activeTab, setActiveTab] = useState<Tab>('lyrics');
 
     const embedUrl = videoUrl ? toEmbedUrl(videoUrl) : '';
@@ -117,6 +196,11 @@ export function SongCard({
     const open = () => {
         setActiveTab('lyrics');
         setIsOpen(true);
+    };
+
+    const onOpenChange = (next: boolean) => {
+        setIsOpen(next);
+        if (!next) onClose?.();
     };
 
     const tabs: {
@@ -215,7 +299,7 @@ export function SongCard({
           su propio scroll. En pantallas chicas el video queda fijo arriba y
           la letra scrollea debajo. Radix desmonta el contenido al cerrar,
           así que el iframe se destruye y el video deja de sonar. */}
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent
                     aria-describedby={undefined}
                     className={cn(
@@ -223,16 +307,19 @@ export function SongCard({
                         embedUrl ? 'sm:max-w-6xl' : 'sm:max-w-3xl',
                     )}
                 >
-                    <DialogHeader className="shrink-0 border-b border-border p-6 pr-12 text-left">
-                        <DialogTitle className="font-serif text-2xl font-bold">
-                            {title}
-                        </DialogTitle>
-                        <SongMeta
-                            type={type}
-                            ritmos={ritmos}
-                            mestre={mestre}
-                            nossa={nossa}
-                        />
+                    <DialogHeader className="shrink-0 gap-3 border-b border-border p-6 pr-12 text-left sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                        <div className="min-w-0">
+                            <DialogTitle className="font-serif text-2xl font-bold">
+                                {title}
+                            </DialogTitle>
+                            <SongMeta
+                                type={type}
+                                ritmos={ritmos}
+                                mestre={mestre}
+                                nossa={nossa}
+                            />
+                        </div>
+                        <ShareButton id={id} title={title} />
                     </DialogHeader>
 
                     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
