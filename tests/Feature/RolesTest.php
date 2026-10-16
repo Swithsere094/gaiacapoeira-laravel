@@ -11,6 +11,8 @@ use App\Support\Permissions;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -20,7 +22,7 @@ class RolesTest extends TestCase
     use RefreshDatabase;
 
     /** Crea un rol con esos permisos y devuelve su slug. */
-    private function roleWith(array $permissions, string $slug = 'profesor'): string
+    private function roleWith(array $permissions, string $slug = 'guia'): string
     {
         $role = Role::create(['slug' => $slug, 'name' => ucfirst($slug)]);
         $role->permissions()->sync(Permission::whereIn('slug', $permissions)->pluck('id'));
@@ -35,24 +37,23 @@ class RolesTest extends TestCase
         $this->assertEqualsCanonicalizing(Permissions::ALL, Permission::pluck('slug')->all());
     }
 
-    public function test_la_migracion_crea_los_roles_base(): void
+    public function test_las_migraciones_crean_los_roles_base_y_profesor(): void
     {
-        $this->assertEqualsCanonicalizing([Role::ADMIN, Role::MEMBER], Role::pluck('slug')->all());
+        $this->assertEqualsCanonicalizing([Role::ADMIN, Role::MEMBER, 'profesor'], Role::pluck('slug')->all());
         // El admin no necesita filas: tiene todo siempre.
         $this->assertSame(0, Role::where('slug', Role::ADMIN)->first()->permissions()->count());
+        $this->assertSame(
+            [Permissions::EVENTOS_GESTIONAR],
+            Role::where('slug', 'profesor')->first()->permissions->pluck('slug')->all(),
+        );
     }
 
-    public function test_la_columna_vieja_role_se_mantiene_al_dia(): void
+    public function test_la_columna_vieja_role_ya_no_existe_y_el_rol_es_obligatorio(): void
     {
-        $user = User::factory()->create();
-        $this->assertSame('member', DB::table('usuarios')->where('id', $user->id)->value('role'));
+        $this->assertFalse(Schema::hasColumn('usuarios', 'role'));
 
-        $user->update(['role_id' => Role::idFor(Role::ADMIN)]);
-        $this->assertSame('admin', DB::table('usuarios')->where('id', $user->id)->value('role'));
-
-        // Un rol nuevo, para la versión anterior del sitio, es 'member'.
-        $user->update(['role_id' => Role::idFor($this->roleWith([Permissions::GALERA_GESTIONAR]))]);
-        $this->assertSame('member', DB::table('usuarios')->where('id', $user->id)->value('role'));
+        $this->expectException(QueryException::class);
+        DB::table('usuarios')->insert(['id' => (string) Str::uuid(), 'username' => 'x', 'password_hash' => 'x', 'name' => 'X']);
     }
 
     public function test_no_se_puede_borrar_en_la_base_un_rol_con_personas(): void
@@ -129,8 +130,8 @@ class RolesTest extends TestCase
         $this->actingAsRole($this->roleWith([Permissions::GALERA_GESTIONAR]));
 
         $this->get('/')->assertInertia(fn (Assert $page) => $page
-            ->where('auth.user.role', 'profesor')
-            ->where('auth.user.role_name', 'Profesor')
+            ->where('auth.user.role', 'guia')
+            ->where('auth.user.role_name', 'Guia')
             ->where('auth.permissions', [Permissions::GALERA_GESTIONAR])
         );
 
@@ -149,7 +150,7 @@ class RolesTest extends TestCase
         $this->actingAsRole('admin');
         $this->get('/admin/roles')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('admin/roles')
-            ->has('roles', 2)
+            ->has('roles', 3)
             ->where('roles.0.slug', Role::ADMIN)
             ->where('roles.0.permissions', Permissions::ALL)
             ->has('permissions', count(Permissions::ALL))
@@ -183,7 +184,7 @@ class RolesTest extends TestCase
         $this->post('/admin/roles', ['name' => ''])->assertSessionHasErrors('name');
         $this->post('/admin/roles', ['name' => 'Guía', 'permissions' => ['usuarios.gestionar']])->assertSessionHasErrors('permissions.0');
 
-        $this->assertSame(2, Role::count());
+        $this->assertSame(3, Role::count());
     }
 
     public function test_edita_nombre_y_permisos_sin_cambiar_el_slug(): void
@@ -192,12 +193,12 @@ class RolesTest extends TestCase
         $slug = $this->roleWith([Permissions::GALERA_GESTIONAR]);
         $role = Role::where('slug', $slug)->first();
 
-        $this->put("/admin/roles/{$role->id}", ['name' => 'Guía', 'permissions' => [Permissions::POLITICA_GESTIONAR]])
+        $this->put("/admin/roles/{$role->id}", ['name' => 'Guía Mayor', 'permissions' => [Permissions::POLITICA_GESTIONAR]])
             ->assertSessionHasNoErrors();
 
         $role->refresh();
-        $this->assertSame('Guía', $role->name);
-        $this->assertSame('profesor', $role->slug);
+        $this->assertSame('Guía Mayor', $role->name);
+        $this->assertSame('guia', $role->slug);
         $this->assertSame([Permissions::POLITICA_GESTIONAR], $role->permissions->pluck('slug')->all());
     }
 
@@ -248,7 +249,7 @@ class RolesTest extends TestCase
         $slug = $this->roleWith([Permissions::GALERA_GESTIONAR]);
         $user = User::factory()->create();
 
-        $this->get('/admin/usuarios')->assertInertia(fn (Assert $page) => $page->has('roles', 3));
+        $this->get('/admin/usuarios')->assertInertia(fn (Assert $page) => $page->has('roles', 4));
 
         $this->put("/admin/usuarios/{$user->id}", ['name' => $user->name, 'role' => $slug])->assertSessionHasNoErrors();
 

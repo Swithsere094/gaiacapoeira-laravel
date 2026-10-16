@@ -15,6 +15,7 @@ import {
     ShieldCheck,
     BarChart3,
     KeyRound,
+    CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getCordaSrc } from '@/lib/constants/cordas';
@@ -70,6 +71,7 @@ const navItems = [
     { href: '/galera', label: 'Galera', icon: Play },
     { href: '/canciones', label: 'Sabiá cantou', icon: Music },
     { href: '/politica', label: 'Política', icon: ScrollText },
+    { href: '/eventos', label: 'Eventos', icon: CalendarDays },
 ];
 
 export function Navigation() {

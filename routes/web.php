@@ -4,7 +4,9 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\EventoController;
 use App\Http\Controllers\GaleraController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SongController;
@@ -26,7 +28,15 @@ Route::get('auth/olvide-contrasena', fn () => redirect('/auth/login'));
 Route::middleware('auth')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::inertia('/', 'home')->name('home');
+    // Inicio: tarjetas de secciones y calendario del mes (?fecha=Y-m-d).
+    Route::get('/', HomeController::class)->name('home');
+
+    // Eventos: cualquiera ve (?vista=mes|semana&fecha=Y-m-d); crear, editar
+    // y eliminar lo decide EventoPolicy (permiso + solo los propios).
+    Route::get('eventos', [EventoController::class, 'index'])->name('eventos');
+    Route::post('eventos', [EventoController::class, 'store']);
+    Route::put('eventos/{evento}', [EventoController::class, 'update']);
+    Route::delete('eventos/{evento}', [EventoController::class, 'destroy']);
 
     // Mi perfil: cada usuario edita solo lo suyo.
     Route::get('perfil', [ProfileController::class, 'show'])->name('perfil');
