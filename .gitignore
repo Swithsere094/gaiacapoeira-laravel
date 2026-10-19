@@ -44,3 +44,6 @@ yarn-error.log
 
 # Contexto local para Claude Code (no se publica)
 CLAUDE.md
+
+# Informes internos (no se publican)
+/docs/auditoria-*.md
