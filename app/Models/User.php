@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Carbon;
 
@@ -66,6 +67,18 @@ class User extends Authenticatable
     public function rol(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
+     * Habilidades dominadas (demo de retos). El pivote guarda cómo se
+     * dominó (`source`: revision | manual), quién la dio y cuándo.
+     *
+     * @return BelongsToMany<Habilidad, $this>
+     */
+    public function habilidadesDominadas(): BelongsToMany
+    {
+        return $this->belongsToMany(Habilidad::class, 'habilidades_dominadas', 'user_id', 'habilidad_id')
+            ->withPivot(['source', 'granted_by', 'created_at']);
     }
 
     public function isAdmin(): bool

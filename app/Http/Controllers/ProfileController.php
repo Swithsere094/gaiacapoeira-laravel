@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Reto;
 use App\Support\Cordas;
+use App\Support\RetosDemo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,9 +20,32 @@ use Inertia\Response;
  */
 class ProfileController extends Controller
 {
-    public function show(): Response
+    public function show(Request $request): Response
     {
-        return Inertia::render('perfil');
+        return Inertia::render('perfil', [
+            // Medallas de retos (demo, solo admins por ahora).
+            'medallas' => $request->user()->isAdmin() ? $this->medallas($request) : null,
+        ]);
+    }
+
+    /**
+     * Medallas por reto, de la que más tiene a la que menos.
+     *
+     * @return list<array{id: string, title: string, habilidad: string|null, oro: int, plata: int, bronce: int}>
+     */
+    private function medallas(Request $request): array
+    {
+        $medals = RetosDemo::progreso($request)->medals();
+
+        return array_values(Reto::with('habilidad')->whereIn('id', array_keys($medals))->get()
+            ->map(fn (Reto $r) => [
+                'id' => $r->id,
+                'title' => $r->title,
+                'habilidad' => $r->habilidad?->name,
+                ...$medals[$r->id],
+            ])
+            ->sortByDesc(fn (array $m) => [$m['oro'], $m['plata'], $m['bronce']])
+            ->all());
     }
 
     public function updateAvatar(Request $request): RedirectResponse

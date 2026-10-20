@@ -1,9 +1,10 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Award, CheckCircle, Eye, EyeOff, Loader2, User } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
+import { MedalCounts } from '@/components/retos/medals';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,21 @@ function useFlag(ms: number) {
     return [on, flash] as const;
 }
 
-export default function Perfil() {
+interface Medalla {
+    id: string;
+    title: string;
+    habilidad: string | null;
+    oro: number;
+    plata: number;
+    bronce: number;
+}
+
+export default function Perfil({
+    medallas,
+}: {
+    /** Medallas de retos (demo: solo llega para admins). */
+    medallas: Medalla[] | null;
+}) {
     const { user } = useAuth();
 
     // ── Avatar (cuerda) ────────────────────────────────────────────────
@@ -168,6 +183,56 @@ export default function Perfil() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* ── Medallas de retos (demo) ── */}
+                    {medallas && (
+                        <Card className="border-border bg-card">
+                            <CardHeader className="border-b border-border pb-4">
+                                <h2 className="font-serif text-lg leading-none font-semibold text-foreground">
+                                    Medallas
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Las que ganaste en los retos semanales
+                                    (demo, solo admins).
+                                </p>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                {medallas.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        Todavía no tienes medallas.{' '}
+                                        <Link
+                                            href="/retos"
+                                            className="font-medium text-primary"
+                                        >
+                                            Acepta un reto
+                                        </Link>
+                                        .
+                                    </p>
+                                ) : (
+                                    <ul className="divide-y divide-border">
+                                        {medallas.map((m) => (
+                                            <li
+                                                key={m.id}
+                                                className="flex flex-wrap items-center justify-between gap-2 py-3"
+                                            >
+                                                <div>
+                                                    <p className="font-medium text-foreground">
+                                                        {m.title}
+                                                    </p>
+                                                    {m.habilidad && (
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {m.habilidad}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <MedalCounts medals={m} />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* ── Elegir cuerda ── */}
                     <Card className="border-border bg-card">

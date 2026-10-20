@@ -3,12 +3,17 @@
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\ArbolController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\GaleraController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RetoController;
+use App\Http\Controllers\RetoDemoController;
+use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\UploadController;
 use App\Support\Permissions;
@@ -102,6 +107,37 @@ Route::middleware('auth')->group(function () {
             Route::post('usuarios', [UserController::class, 'store']);
             Route::put('usuarios/{user}', [UserController::class, 'update']);
             Route::delete('usuarios/{user}', [UserController::class, 'destroy']);
+        });
+
+        // Retos y árbol de habilidades: DEMO, solo admins por ahora.
+        Route::prefix('retos')->group(function () {
+            Route::get('/', [RetoController::class, 'index'])->name('retos');
+            Route::post('{reto}/semana', [RetoController::class, 'startWeek'])->whereUuid('reto');
+            Route::post('semanas/{semana}/abandonar', [RetoController::class, 'abandon'])->whereUuid('semana');
+            Route::get('{reto}/entrenar', [RetoController::class, 'train'])->whereUuid('reto');
+            Route::post('{reto}/entrenar', [RetoController::class, 'startSession'])->whereUuid('reto');
+            Route::post('entrenamientos/{entrenamiento}/completar', [RetoController::class, 'complete'])->whereUuid('entrenamiento');
+
+            // Árbol propio (?arbol=movimiento|musicalidad) y pedido de revisión.
+            Route::get('arbol', [ArbolController::class, 'show'])->name('retos.arbol');
+            Route::post('habilidades/{habilidad}/revision', [RevisionController::class, 'request'])->whereUuid('habilidad');
+
+            // Revisiones del reto secreto.
+            Route::get('revisiones', [RevisionController::class, 'index'])->name('retos.revisiones');
+            Route::post('revisiones/{revision}/aprobar', [RevisionController::class, 'approve'])->whereUuid('revision');
+            Route::post('revisiones/{revision}/rechazar', [RevisionController::class, 'reject'])->whereUuid('revision');
+
+            // Marcar a mano las habilidades dominadas de una persona.
+            Route::get('personas', [PersonaController::class, 'index'])->name('retos.personas');
+            Route::get('personas/{user}', [PersonaController::class, 'show'])->whereUuid('user');
+            Route::post('personas/{user}/habilidades/{habilidad}', [PersonaController::class, 'mark'])->whereUuid(['user', 'habilidad']);
+            Route::delete('personas/{user}/habilidades/{habilidad}', [PersonaController::class, 'unmark'])->whereUuid(['user', 'habilidad']);
+
+            // Controles de prueba (día simulado, cronómetro rápido, reinicio).
+            Route::post('demo/dia-siguiente', [RetoDemoController::class, 'nextDay']);
+            Route::post('demo/hoy', [RetoDemoController::class, 'backToToday']);
+            Route::post('demo/rapido', [RetoDemoController::class, 'toggleFast']);
+            Route::post('demo/reiniciar', [RetoDemoController::class, 'reset']);
         });
     });
 });

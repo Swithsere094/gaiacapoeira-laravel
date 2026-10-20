@@ -16,6 +16,7 @@ import {
     BarChart3,
     KeyRound,
     CalendarDays,
+    Trophy,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getCordaSrc } from '@/lib/constants/cordas';
@@ -67,12 +68,15 @@ function CordaAvatar({
     );
 }
 
-const navItems = [
+const baseNavItems = [
     { href: '/galera', label: 'Galera', icon: Play },
     { href: '/canciones', label: 'Sabiá cantou', icon: Music },
     { href: '/politica', label: 'Política', icon: ScrollText },
     { href: '/eventos', label: 'Eventos', icon: CalendarDays },
 ];
+
+// Retos: demo, por ahora solo para admins.
+const retosNavItem = { href: '/retos', label: 'Retos', icon: Trophy };
 
 export function Navigation() {
     const pathname = usePathname();
@@ -80,6 +84,7 @@ export function Navigation() {
     const [scrolled, setScrolled] = useState(false);
     const { user, loading, signOut, can, isAdmin } = useAuth();
     const canViewAnalytics = can('analiticas.ver');
+    const navItems = isAdmin ? [...baseNavItems, retosNavItem] : baseNavItems;
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 0);

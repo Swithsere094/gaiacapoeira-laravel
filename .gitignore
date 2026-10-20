@@ -47,3 +47,6 @@ CLAUDE.md
 
 # Informes internos (no se publican)
 /docs/auditoria-*.md
+
+# Guías locales del demo de retos (prueba de admins y cómo abrirlo a todos)
+/docs/retos-*.md
