@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RetoSemana;
+use App\Support\Celebraciones;
 use App\Support\EventCalendar;
 use App\Support\RetosDemo;
 use App\Support\RetosView;
@@ -24,7 +25,7 @@ class HomeController extends Controller
         ]);
     }
 
-    /** @return array{active: list<array<string, mixed>>, today: string} */
+    /** @return array{active: list<array<string, mixed>>, today: string, progress: array<string, array{done: int, total: int}>, celebrations: list<array<string, mixed>>} */
     private function retos(Request $request): array
     {
         $progreso = RetosDemo::progreso($request);
@@ -34,6 +35,8 @@ class HomeController extends Controller
                 ->map(fn (RetoSemana $s) => RetosView::activeWeek($s, $progreso->today))
                 ->all()),
             'today' => $progreso->today->toDateString(),
+            'progress' => $progreso->treeProgress(),
+            'celebrations' => Celebraciones::pull($progreso),
         ];
     }
 }

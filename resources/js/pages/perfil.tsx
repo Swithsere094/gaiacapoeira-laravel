@@ -1,10 +1,11 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Award, CheckCircle, Eye, EyeOff, Loader2, User } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
-import { MedalCounts } from '@/components/retos/medals';
+import { MedalShowcase } from '@/components/retos/medal-showcase';
+import type { Medalla } from '@/components/retos/medal-showcase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,15 +22,6 @@ function useFlag(ms: number) {
     };
 
     return [on, flash] as const;
-}
-
-interface Medalla {
-    id: string;
-    title: string;
-    habilidad: string | null;
-    oro: number;
-    plata: number;
-    bronce: number;
 }
 
 export default function Perfil({
@@ -192,44 +184,13 @@ export default function Perfil({
                                     Medallas
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    Las que ganaste en los retos semanales
-                                    (demo, solo admins).
+                                    Una por cada reto semanal: las que ya
+                                    ganaste y las que faltan (demo, solo
+                                    admins).
                                 </p>
                             </CardHeader>
                             <CardContent className="pt-6">
-                                {medallas.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        Todavía no tienes medallas.{' '}
-                                        <Link
-                                            href="/retos"
-                                            className="font-medium text-primary"
-                                        >
-                                            Acepta un reto
-                                        </Link>
-                                        .
-                                    </p>
-                                ) : (
-                                    <ul className="divide-y divide-border">
-                                        {medallas.map((m) => (
-                                            <li
-                                                key={m.id}
-                                                className="flex flex-wrap items-center justify-between gap-2 py-3"
-                                            >
-                                                <div>
-                                                    <p className="font-medium text-foreground">
-                                                        {m.title}
-                                                    </p>
-                                                    {m.habilidad && (
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {m.habilidad}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <MedalCounts medals={m} />
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                <MedalShowcase medallas={medallas} />
                             </CardContent>
                         </Card>
                     )}

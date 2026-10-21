@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property CarbonImmutable $starts_on
  * @property CarbonImmutable $ends_on
  * @property CarbonImmutable|null $abandoned_at
+ * @property CarbonImmutable|null $celebrated_at cuándo se mostró la celebración de su medalla
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Reto $reto
@@ -45,7 +46,7 @@ class RetoSemana extends Model
 
     protected $table = 'reto_semanas';
 
-    protected $fillable = ['user_id', 'reto_id', 'starts_on', 'ends_on', 'abandoned_at'];
+    protected $fillable = ['user_id', 'reto_id', 'starts_on', 'ends_on', 'abandoned_at', 'celebrated_at'];
 
     protected function casts(): array
     {
@@ -53,6 +54,7 @@ class RetoSemana extends Model
             'starts_on' => 'immutable_date:Y-m-d',
             'ends_on' => 'immutable_date:Y-m-d',
             'abandoned_at' => 'immutable_datetime',
+            'celebrated_at' => 'immutable_datetime',
         ];
     }
 

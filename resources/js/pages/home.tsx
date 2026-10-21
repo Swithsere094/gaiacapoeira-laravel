@@ -8,13 +8,21 @@ import { Footer } from '@/components/footer';
 import { Hero } from '@/components/hero';
 import { Navigation } from '@/components/navigation';
 import { ActiveWeekCard } from '@/components/retos/active-week-card';
+import { CelebrationDialog } from '@/components/retos/celebration-dialog';
+import { TreeProgressRings } from '@/components/retos/progress-ring';
 import type { CalendarData, CalendarEvent } from '@/lib/calendar';
+import type { Celebration, TreeProgress } from '@/lib/celebraciones';
 import type { SemanaActiva } from '@/lib/retos';
 
 interface Props {
     calendar: CalendarData;
     /** Retos en curso (demo: solo llega para admins). */
-    retos: { active: SemanaActiva[]; today: string } | null;
+    retos: {
+        active: SemanaActiva[];
+        today: string;
+        progress: TreeProgress;
+        celebrations: Celebration[];
+    } | null;
 }
 
 export default function Home({ calendar, retos }: Props) {
@@ -110,6 +118,8 @@ function RetosSection({ retos }: { retos: NonNullable<Props['retos']> }) {
                 </Link>
             </div>
 
+            <TreeProgressRings progress={retos.progress} className="mb-4" />
+
             {retos.active.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
                     No tienes retos en curso.{' '}
@@ -129,6 +139,8 @@ function RetosSection({ retos }: { retos: NonNullable<Props['retos']> }) {
                     ))}
                 </div>
             )}
+
+            <CelebrationDialog items={retos.celebrations} />
         </section>
     );
 }

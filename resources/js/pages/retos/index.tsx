@@ -6,10 +6,16 @@ import { Navigation } from '@/components/navigation';
 import { ActiveWeekCard } from '@/components/retos/active-week-card';
 import { DemoBar } from '@/components/retos/demo-bar';
 import { FlashMessage } from '@/components/retos/flash-message';
+import { CelebrationDialog } from '@/components/retos/celebration-dialog';
 import { MedalCounts, MedalIcon } from '@/components/retos/medals';
+import { TreeProgressRings } from '@/components/retos/progress-ring';
+import { IconBadge } from '@/components/retos/reto-icon';
 import { RetosHeader } from '@/components/retos/retos-header';
+import { SecretTeaser } from '@/components/retos/secret-teaser';
 import { Button } from '@/components/ui/button';
 import { shortDate } from '@/lib/calendar';
+import type { Celebration, TreeProgress } from '@/lib/celebraciones';
+import { categoryIcon, skillIcon } from '@/lib/icons';
 import {
     CATEGORY_LABELS,
     MEDAL_STYLE,
@@ -32,6 +38,8 @@ interface Props {
     sueltos: RetoSuelto[];
     finished: SemanaTerminada[];
     pending_reviews: number;
+    progress: TreeProgress;
+    celebrations: Celebration[];
     demo: RetosDemoState;
 }
 
@@ -92,7 +100,8 @@ function SkillCard({ skill }: { skill: HabilidadFrontera }) {
     return (
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
             <div>
-                <h3 className="font-serif text-lg font-semibold text-foreground">
+                <h3 className="flex items-center gap-3 font-serif text-lg font-semibold text-foreground">
+                    <IconBadge icon={skillIcon(skill.icon)} />
                     {skill.name}
                 </h3>
                 {skill.description && (
@@ -126,15 +135,11 @@ function SkillCard({ skill }: { skill: HabilidadFrontera }) {
                     ¡Reto secreto desbloqueado! Verlo en el árbol
                 </Link>
             ) : (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    Reto secreto:{' '}
-                    {Math.min(skill.valid_weeks, skill.secret_weeks)} de{' '}
-                    {skill.secret_weeks}{' '}
-                    {skill.secret_weeks === 1
-                        ? 'semana válida'
-                        : 'semanas válidas'}
-                </p>
+                <SecretTeaser
+                    valid={skill.valid_weeks}
+                    needed={skill.secret_weeks}
+                    compact
+                />
             )}
             {skill.reto && (
                 <div className="mt-auto">
@@ -151,6 +156,8 @@ export default function RetosPage({
     sueltos,
     finished,
     pending_reviews,
+    progress,
+    celebrations,
     demo,
 }: Props) {
     const { confirm } = useConfirm();
@@ -186,6 +193,8 @@ export default function RetosPage({
                         Acepta un reto y entrena durante 7 días. Con 4 días
                         ganas bronce, con 5 plata y con 6 o 7 oro.
                     </RetosHeader>
+
+                    <TreeProgressRings progress={progress} />
 
                     <DemoBar demo={demo} />
                     <FlashMessage />
@@ -269,6 +278,10 @@ export default function RetosPage({
                                     className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5"
                                 >
                                     <div>
+                                        <IconBadge
+                                            icon={categoryIcon(reto.category)}
+                                            className="mb-3"
+                                        />
                                         <p className="text-xs font-medium tracking-wide text-primary uppercase">
                                             {CATEGORY_LABELS[
                                                 reto.category ?? ''
@@ -316,7 +329,7 @@ export default function RetosPage({
                                         {week.medal ? (
                                             <MedalIcon
                                                 medal={week.medal}
-                                                className="h-7 w-7 shrink-0"
+                                                size={28}
                                             />
                                         ) : (
                                             <span className="h-7 w-7 shrink-0" />
@@ -345,6 +358,8 @@ export default function RetosPage({
             </main>
 
             <Footer />
+
+            <CelebrationDialog items={celebrations} />
         </div>
     );
 }

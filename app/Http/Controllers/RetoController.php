@@ -7,6 +7,7 @@ use App\Models\Habilidad;
 use App\Models\Reto;
 use App\Models\RetoSemana;
 use App\Support\ArbolView;
+use App\Support\Celebraciones;
 use App\Support\Progreso;
 use App\Support\RetosDemo;
 use App\Support\RetosView;
@@ -45,6 +46,7 @@ class RetoController extends Controller
                 return [
                     'id' => $h->id,
                     'name' => $h->name,
+                    'icon' => $h->icon,
                     'tree' => $h->tree,
                     'description' => $h->description,
                     'valid_weeks' => $progreso->validWeeks($h->id),
@@ -75,6 +77,8 @@ class RetoController extends Controller
             'sueltos' => $sueltos->values(),
             'finished' => $finished->map(fn (RetoSemana $s) => RetosView::finishedWeek($s))->values(),
             'pending_reviews' => ArbolView::pendingReviews(),
+            'progress' => $progreso->treeProgress(),
+            'celebrations' => Celebraciones::pull($progreso),
             'demo' => RetosDemo::toArray($request),
         ]);
     }

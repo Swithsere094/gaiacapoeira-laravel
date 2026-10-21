@@ -10,6 +10,8 @@ import {
 import type { ReactNode } from 'react';
 import { FlashMessage } from '@/components/retos/flash-message';
 import { MedalCounts } from '@/components/retos/medals';
+import { SecretTeaser } from '@/components/retos/secret-teaser';
+import { SkillFocus } from '@/components/retos/skill-focus';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -44,51 +46,6 @@ export function StatusChip({ node }: { node: TreeNode }) {
     );
 }
 
-/** Requisitos de la habilidad, con cuáles ya están dominados. */
-export function RequisitosList({
-    node,
-    nodes,
-}: {
-    node: TreeNode;
-    nodes: TreeNode[];
-}) {
-    if (node.requisitos.length === 0) {
-        return (
-            <p className="text-sm text-muted-foreground">
-                No tiene requisitos: es una de las primeras del árbol.
-            </p>
-        );
-    }
-
-    return (
-        <ul className="flex flex-wrap gap-2">
-            {node.requisitos.map((id) => {
-                const r = nodes.find((n) => n.id === id);
-                const done = r?.status === 'dominada';
-
-                return (
-                    <li
-                        key={id}
-                        className={cn(
-                            'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs',
-                            done
-                                ? 'border-primary text-foreground'
-                                : 'border-border text-muted-foreground',
-                        )}
-                    >
-                        {done ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                        ) : (
-                            <Lock className="h-3.5 w-3.5" />
-                        )}
-                        {r?.name ?? '—'}
-                    </li>
-                );
-            })}
-        </ul>
-    );
-}
-
 /** Cómo quedó dominada: "Por revisión de Ana, el 3 de nov." */
 export function dominatedText(node: TreeNode): string | null {
     if (!node.dominated) {
@@ -116,16 +73,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * Detalle de una habilidad del árbol propio: requisitos, reto de práctica,
- * avance hacia el reto secreto, el secreto y la revisión.
+ * Detalle de una habilidad del árbol propio: su entorno (necesita → esta →
+ * desbloquea, para recorrer el árbol desde acá), reto de práctica, avance
+ * hacia el reto secreto, el secreto y la revisión.
  */
 export function SkillDialog({
     node,
     nodes,
+    onSelect,
     onClose,
 }: {
     node: TreeNode | null;
     nodes: TreeNode[];
+    onSelect: (node: TreeNode) => void;
     onClose: () => void;
 }) {
     const post = (url: string) =>
@@ -162,8 +122,12 @@ export function SkillDialog({
                             </p>
                         )}
 
-                        <Section title="Requisitos">
-                            <RequisitosList node={node} nodes={nodes} />
+                        <Section title="En el árbol">
+                            <SkillFocus
+                                node={node}
+                                nodes={nodes}
+                                onSelect={onSelect}
+                            />
                             {node.status === 'bloqueada' && (
                                 <p className="text-sm text-muted-foreground">
                                     Domina todos sus requisitos para
@@ -226,19 +190,10 @@ export function SkillDialog({
                                 {node.secreto ? (
                                     <SecretPanel node={node} post={post} />
                                 ) : (
-                                    <p className="flex items-start gap-2 text-sm text-muted-foreground">
-                                        <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-                                        Aparece con {node.secret_weeks}{' '}
-                                        {node.secret_weeks === 1
-                                            ? 'semana válida'
-                                            : 'semanas válidas'}{' '}
-                                        del reto de práctica (llevas{' '}
-                                        {Math.min(
-                                            node.valid_weeks,
-                                            node.secret_weeks,
-                                        )}
-                                        ).
-                                    </p>
+                                    <SecretTeaser
+                                        valid={node.valid_weeks}
+                                        needed={node.secret_weeks}
+                                    />
                                 )}
                             </Section>
                         )}

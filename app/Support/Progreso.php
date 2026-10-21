@@ -72,6 +72,26 @@ final class Progreso
         ));
     }
 
+    /**
+     * Cuántas habilidades domina en cada árbol, sobre el total.
+     *
+     * @return array<string, array{done: int, total: int}> árbol => avance
+     */
+    public function treeProgress(): array
+    {
+        $progress = [];
+
+        foreach (Habilidad::TREES as $tree) {
+            $ids = $this->habilidades->filter(fn (Habilidad $h) => $h->tree === $tree)->keys();
+            $progress[$tree] = [
+                'done' => $ids->filter(fn (string $id) => $this->isDominated($id))->count(),
+                'total' => $ids->count(),
+            ];
+        }
+
+        return $progress;
+    }
+
     /** @return Collection<string, Habilidad> todas, por id, con sus requisitos */
     public function habilidades(): Collection
     {

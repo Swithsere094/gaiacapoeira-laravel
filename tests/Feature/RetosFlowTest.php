@@ -262,10 +262,15 @@ class RetosFlowTest extends TestCase
         $this->assertSame('plata', $props['finished'][0]['medal']);
         $this->assertSame(['oro' => 0, 'plata' => 1, 'bronce' => 0], $props['frontier'][0]['reto']['medals']);
 
-        $this->get('/perfil')->assertInertia(fn (Assert $page) => $page
-            ->has('medallas', 1)
-            ->where('medallas.0.title', $reto->title)
-            ->where('medallas.0.plata', 1));
+        // Vitrina: todos los retos semanales (36 de práctica + 5 sueltos),
+        // Ginga primero (orden del árbol) con su plata, el resto por ganar.
+        $vitrina = $this->props('/perfil')['medallas'];
+        $this->assertCount(41, $vitrina);
+        $this->assertSame([$reto->id, 'movimiento', 'Ginga', 'footprints', 1], [
+            $vitrina[0]['id'], $vitrina[0]['group'], $vitrina[0]['habilidad'], $vitrina[0]['icon'], $vitrina[0]['plata'],
+        ]);
+        $this->assertSame('sueltos', $vitrina[40]['group']);
+        $this->assertSame(1, array_sum(array_map(fn (array $m) => $m['oro'] + $m['plata'] + $m['bronce'], $vitrina)));
     }
 
     public function test_si_la_semana_termino_el_entrenamiento_no_cuenta(): void

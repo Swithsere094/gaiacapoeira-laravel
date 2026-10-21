@@ -15,6 +15,7 @@ import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
 import { retoContext } from '@/components/retos/active-week-card';
 import { FlashMessage } from '@/components/retos/flash-message';
+import { ProgressRing } from '@/components/retos/progress-ring';
 import { Button } from '@/components/ui/button';
 import { WEEK_DAYS, formatClock, formatMinutes, weekStatus } from '@/lib/retos';
 import type {
@@ -307,6 +308,34 @@ function Training({ reto, semana, session, server_now, demo }: Props) {
                     {session && !done && (
                         <>
                             <div className="rounded-xl border border-primary/40 bg-card p-6 text-center">
+                                {/* Un tramo por paso (largo según su duración). */}
+                                <div
+                                    className="mb-4 flex gap-1"
+                                    aria-hidden="true"
+                                >
+                                    {steps.map((s, i) => (
+                                        <span
+                                            key={i}
+                                            className="h-1.5 overflow-hidden rounded-full bg-secondary"
+                                            style={{
+                                                flexGrow: s.seconds,
+                                                flexBasis: 0,
+                                            }}
+                                        >
+                                            <span
+                                                className="block h-full bg-primary"
+                                                style={{
+                                                    width:
+                                                        i < index
+                                                            ? '100%'
+                                                            : i === index
+                                                              ? `${(1 - stepLeft / step.seconds) * 100}%`
+                                                              : '0%',
+                                                }}
+                                            />
+                                        </span>
+                                    ))}
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                     Paso {index + 1} de {steps.length}
                                 </p>
@@ -316,24 +345,24 @@ function Training({ reto, semana, session, server_now, demo }: Props) {
                                 <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
                                     {step.detail}
                                 </p>
-                                <p
-                                    className={cn(
-                                        'mt-6 font-mono text-6xl font-bold tabular-nums',
-                                        paused
-                                            ? 'text-muted-foreground'
-                                            : 'text-primary',
-                                    )}
-                                    aria-live="off"
-                                >
-                                    {formatClock(stepLeft)}
-                                </p>
-                                <div className="mx-auto mt-4 h-2 max-w-md overflow-hidden rounded-full bg-secondary">
-                                    <div
-                                        className="h-full bg-primary transition-[width] duration-200"
-                                        style={{
-                                            width: `${(1 - stepLeft / step.seconds) * 100}%`,
-                                        }}
-                                    />
+                                <div className="mt-6 flex justify-center">
+                                    <ProgressRing
+                                        value={1 - stepLeft / step.seconds}
+                                        size={208}
+                                        stroke={10}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'font-mono text-5xl font-bold tabular-nums',
+                                                paused
+                                                    ? 'text-muted-foreground'
+                                                    : 'text-primary',
+                                            )}
+                                            aria-live="off"
+                                        >
+                                            {formatClock(stepLeft)}
+                                        </span>
+                                    </ProgressRing>
                                 </div>
                                 {index + 1 < steps.length && (
                                     <p className="mt-4 text-sm text-muted-foreground">

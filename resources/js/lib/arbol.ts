@@ -9,6 +9,8 @@ export type NodeStatus = 'dominada' | 'disponible' | 'bloqueada';
 export interface TreeNode {
     id: string;
     name: string;
+    /** Nombre del ícono (lib/icons.ts); null = genérico. */
+    icon: string | null;
     description: string | null;
     video_url: string | null;
     /** 0 = raíz; cada habilidad va un nivel debajo de su requisito más profundo. */
@@ -94,6 +96,11 @@ export function arrangeLevels(nodes: TreeNode[]): TreeNode[][] {
 
             return sorted;
         });
+}
+
+/** Lo que una habilidad desbloquea directamente (las que la tienen de requisito). */
+export function unlocksOf(id: string, nodes: TreeNode[]): string[] {
+    return nodes.filter((n) => n.requisitos.includes(id)).map((n) => n.id);
 }
 
 /** Requisitos directos e indirectos de una habilidad. */

@@ -31,6 +31,7 @@ final class RetosView
             'habilidad' => $reto->habilidad ? [
                 'id' => $reto->habilidad->id,
                 'name' => $reto->habilidad->name,
+                'icon' => $reto->habilidad->icon,
                 'tree' => $reto->habilidad->tree,
             ] : null,
             'medals' => $medals[$reto->id] ?? self::NO_MEDALS,

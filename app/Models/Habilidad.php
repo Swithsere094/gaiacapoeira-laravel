@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property string $tree movimiento | musicalidad
  * @property string $slug
  * @property string $name
+ * @property string|null $icon nombre de un ícono de resources/js/lib/icons.ts
  * @property string|null $description
  * @property string|null $video_url
  * @property int $secret_weeks semanas válidas para que aparezca el reto secreto
@@ -38,7 +39,7 @@ class Habilidad extends Model
 
     protected $table = 'habilidades';
 
-    protected $fillable = ['tree', 'slug', 'name', 'description', 'video_url', 'secret_weeks', 'sort_order'];
+    protected $fillable = ['tree', 'slug', 'name', 'icon', 'description', 'video_url', 'secret_weeks', 'sort_order'];
 
     /**
      * Habilidades que hay que dominar (todas) para desbloquear esta.

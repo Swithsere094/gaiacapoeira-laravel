@@ -85,6 +85,7 @@ class RetosTest extends TestCase
 
         foreach (Habilidad::with('retos')->get() as $habilidad) {
             $this->assertSame([Reto::PRACTICA, Reto::SECRETO], $habilidad->retos->pluck('kind')->all(), $habilidad->slug);
+            $this->assertNotNull($habilidad->icon, "{$habilidad->slug} sin ícono");
         }
     }
 

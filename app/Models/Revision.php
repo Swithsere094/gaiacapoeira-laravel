@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $comment
  * @property string|null $reviewer_id
  * @property CarbonImmutable|null $reviewed_at
+ * @property CarbonImmutable|null $celebrated_at cuándo se mostró la celebración de la aprobación
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read User $user
@@ -38,12 +39,13 @@ class Revision extends Model
 
     protected $table = 'revisiones';
 
-    protected $fillable = ['user_id', 'habilidad_id', 'status', 'comment', 'reviewer_id', 'reviewed_at'];
+    protected $fillable = ['user_id', 'habilidad_id', 'status', 'comment', 'reviewer_id', 'reviewed_at', 'celebrated_at'];
 
     protected function casts(): array
     {
         return [
             'reviewed_at' => 'immutable_datetime',
+            'celebrated_at' => 'immutable_datetime',
         ];
     }
 

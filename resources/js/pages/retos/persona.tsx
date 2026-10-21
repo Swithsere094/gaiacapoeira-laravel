@@ -6,11 +6,8 @@ import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
 import { FlashMessage } from '@/components/retos/flash-message';
 import { RetosHeader } from '@/components/retos/retos-header';
-import {
-    RequisitosList,
-    StatusChip,
-    dominatedText,
-} from '@/components/retos/skill-dialog';
+import { StatusChip, dominatedText } from '@/components/retos/skill-dialog';
+import { SkillFocus } from '@/components/retos/skill-focus';
 import { SkillTree, TreeLegend } from '@/components/retos/skill-tree';
 import { TreeSwitch } from '@/components/retos/tree-switch';
 import { Button } from '@/components/ui/button';
@@ -167,12 +164,11 @@ export default function PersonaPage({
                                 </p>
                             )}
 
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold tracking-wide text-primary uppercase">
-                                    Requisitos
-                                </p>
-                                <RequisitosList node={node} nodes={nodes} />
-                            </div>
+                            <SkillFocus
+                                node={node}
+                                nodes={nodes}
+                                onSelect={(n) => setSelectedId(n.id)}
+                            />
 
                             <div className="flex justify-end gap-2 pt-2">
                                 {node.status === 'dominada' ? (

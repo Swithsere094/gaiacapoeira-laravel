@@ -14,11 +14,9 @@ export function RetosTabs({ pendingReviews }: { pendingReviews: number }) {
     const pathname = usePathname();
 
     return (
-        <nav
-            aria-label="Secciones de retos"
-            className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-        >
-            <div className="inline-flex rounded-lg bg-secondary p-1">
+        <nav aria-label="Secciones de retos">
+            {/* En el celular, las 4 pestañas en una fila de igual ancho. */}
+            <div className="grid grid-cols-4 rounded-lg bg-secondary p-1 sm:inline-flex">
                 {TABS.map((tab) => {
                     const active =
                         tab.href === '/retos'
@@ -31,7 +29,7 @@ export function RetosTabs({ pendingReviews }: { pendingReviews: number }) {
                             href={tab.href}
                             aria-current={active ? 'page' : undefined}
                             className={cn(
-                                'flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
+                                'flex items-center justify-center gap-1 rounded-md px-1.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors sm:gap-1.5 sm:px-4 sm:text-sm',
                                 active
                                     ? 'bg-primary text-primary-foreground'
                                     : 'text-muted-foreground hover:text-foreground',

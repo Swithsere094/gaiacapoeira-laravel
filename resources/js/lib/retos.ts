@@ -25,7 +25,12 @@ export interface RetoResumen {
     title: string;
     description: string | null;
     minutes: number;
-    habilidad: { id: string; name: string; tree: Tree } | null;
+    habilidad: {
+        id: string;
+        name: string;
+        icon: string | null;
+        tree: Tree;
+    } | null;
     medals: MedalCount;
 }
 
@@ -55,6 +60,7 @@ export interface SemanaTerminada {
 export interface HabilidadFrontera {
     id: string;
     name: string;
+    icon: string | null;
     tree: Tree;
     description: string | null;
     valid_weeks: number;

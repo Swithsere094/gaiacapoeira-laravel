@@ -74,6 +74,7 @@ final class ArbolView
             return [
                 'id' => $h->id,
                 'name' => $h->name,
+                'icon' => $h->icon,
                 'description' => $h->description,
                 'video_url' => $h->video_url,
                 'level' => $levels[$h->id] ?? 0,

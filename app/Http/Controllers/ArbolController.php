@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Habilidad;
 use App\Support\ArbolView;
+use App\Support\Celebraciones;
 use App\Support\RetosDemo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,10 +16,13 @@ class ArbolController extends Controller
     public function show(Request $request): Response
     {
         $tree = self::tree($request);
+        $progreso = RetosDemo::progreso($request);
 
         return Inertia::render('retos/arbol', [
             'tree' => $tree,
-            'nodes' => ArbolView::nodes(RetosDemo::progreso($request), $tree),
+            'nodes' => ArbolView::nodes($progreso, $tree),
+            'progress' => $progreso->treeProgress(),
+            'celebrations' => Celebraciones::pull($progreso),
             // ?habilidad=<id>: abre esa habilidad (al volver de un entrenamiento).
             'selected' => $request->string('habilidad')->toString() ?: null,
             'pending_reviews' => ArbolView::pendingReviews(),

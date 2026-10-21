@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Habilidad;
 use App\Models\Reto;
 use App\Support\Cordas;
 use App\Support\RetosDemo;
@@ -29,22 +30,33 @@ class ProfileController extends Controller
     }
 
     /**
-     * Medallas por reto, de la que más tiene a la que menos.
+     * Vitrina de medallas: todos los retos semanales (los de práctica de cada
+     * habilidad y los sueltos), con las medallas ganadas en cada uno (0 = por
+     * ganar), agrupados por árbol y en el orden del árbol.
      *
-     * @return list<array{id: string, title: string, habilidad: string|null, oro: int, plata: int, bronce: int}>
+     * @return list<array{id: string, title: string, group: string, habilidad: string|null, icon: string|null, category: string|null, oro: int, plata: int, bronce: int}>
      */
     private function medallas(Request $request): array
     {
         $medals = RetosDemo::progreso($request)->medals();
+        $none = ['oro' => 0, 'plata' => 0, 'bronce' => 0];
 
-        return array_values(Reto::with('habilidad')->whereIn('id', array_keys($medals))->get()
+        return array_values(Reto::with('habilidad')
+            ->whereIn('kind', [Reto::PRACTICA, Reto::SUELTO])
+            ->get()
+            ->sortBy(fn (Reto $r) => [
+                $r->habilidad ? array_search($r->habilidad->tree, Habilidad::TREES, true) : 99,
+                $r->habilidad->sort_order ?? $r->sort_order,
+            ])
             ->map(fn (Reto $r) => [
                 'id' => $r->id,
                 'title' => $r->title,
+                'group' => $r->habilidad->tree ?? 'sueltos',
                 'habilidad' => $r->habilidad?->name,
-                ...$medals[$r->id],
+                'icon' => $r->habilidad?->icon,
+                'category' => $r->category,
+                ...($medals[$r->id] ?? $none),
             ])
-            ->sortByDesc(fn (array $m) => [$m['oro'], $m['plata'], $m['bronce']])
             ->all());
     }
 

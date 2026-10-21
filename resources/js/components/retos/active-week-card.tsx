@@ -1,7 +1,9 @@
 import { Link } from '@inertiajs/react';
 import { CheckCircle2, Play } from 'lucide-react';
-import { MedalIcon } from '@/components/retos/medals';
+import { MedalBadge } from '@/components/retos/medals';
+import { IconBadge, retoIcon } from '@/components/retos/reto-icon';
 import { WeekDots } from '@/components/retos/week-dots';
+import { WeekMedalBar } from '@/components/retos/week-medal-bar';
 import { Button } from '@/components/ui/button';
 import {
     CATEGORY_LABELS,
@@ -35,8 +37,9 @@ export function ActiveWeekCard({
 
     return (
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
-            <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+            <div className="flex items-start gap-3">
+                <IconBadge icon={retoIcon(semana.reto)} />
+                <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium tracking-wide text-primary uppercase">
                         {retoContext(semana.reto)}
                     </p>
@@ -49,14 +52,17 @@ export function ActiveWeekCard({
                     </p>
                 </div>
                 {semana.medal_so_far && (
-                    <MedalIcon
+                    <MedalBadge
                         medal={semana.medal_so_far}
-                        className="h-8 w-8 shrink-0"
+                        icon={retoIcon(semana.reto)}
+                        size={34}
+                        shine
                     />
                 )}
             </div>
 
             <WeekDots semana={semana} today={today} />
+            <WeekMedalBar days={days} />
 
             <p className="text-sm font-medium text-foreground">
                 {days} de {WEEK_DAYS} días · {weekStatus(days)}
