@@ -48,7 +48,7 @@ class RetosFlowTest extends TestCase
 
     // ── Acceso ──────────────────────────────────────────────────────
 
-    public function test_es_solo_para_admins(): void
+    public function test_sin_permisos_no_hay_retos_ni_controles_de_prueba(): void
     {
         $reto = $this->practica('ginga');
         $this->actingAsRole('profesor');

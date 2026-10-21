@@ -14,7 +14,8 @@ use Illuminate\Http\Request;
  *  - cronómetro rápido: los entrenamientos que se empiezan duran 30 veces
  *    menos (el servidor exige esa duración más corta).
  *
- * Al abrir los retos a los miembros (fase E) esto se quita.
+ * Solo para admins: para cualquier otra persona, "hoy" es hoy y el cronómetro
+ * corre normal (aunque tenga algo guardado en la sesión).
  */
 final class RetosDemo
 {
@@ -27,7 +28,7 @@ final class RetosDemo
 
     public static function offset(Request $request): int
     {
-        return (int) $request->session()->get(self::OFFSET, 0);
+        return self::enabled($request) ? (int) $request->session()->get(self::OFFSET, 0) : 0;
     }
 
     /** Hoy en Colombia, más los días simulados. */
@@ -38,7 +39,12 @@ final class RetosDemo
 
     public static function fast(Request $request): bool
     {
-        return (bool) $request->session()->get(self::FAST, false);
+        return self::enabled($request) && (bool) $request->session()->get(self::FAST, false);
+    }
+
+    public static function enabled(Request $request): bool
+    {
+        return $request->user()?->isAdmin() ?? false;
     }
 
     public static function nextDay(Request $request): void
@@ -61,9 +67,17 @@ final class RetosDemo
         return new Progreso($request->user(), self::today($request));
     }
 
-    /** @return array{today: string, offset: int, fast: bool} */
-    public static function toArray(Request $request): array
+    /**
+     * Estado para la barra de controles (null si no es admin).
+     *
+     * @return array{today: string, offset: int, fast: bool}|null
+     */
+    public static function toArray(Request $request): ?array
     {
+        if (! self::enabled($request)) {
+            return null;
+        }
+
         return [
             'today' => self::today($request)->toDateString(),
             'offset' => self::offset($request),

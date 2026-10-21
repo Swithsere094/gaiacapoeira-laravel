@@ -9,6 +9,7 @@ use App\Models\RetoSemana;
 use App\Support\ArbolView;
 use App\Support\Celebraciones;
 use App\Support\Progreso;
+use App\Support\RetosAcceso;
 use App\Support\RetosDemo;
 use App\Support\RetosView;
 use Illuminate\Http\RedirectResponse;
@@ -17,9 +18,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Retos (demo, solo admins): aceptar retos semanales, hacer el
- * entrenamiento guiado y ver el progreso. Las reglas están en
- * App\Support\Progreso; "hoy" puede estar simulado (App\Support\RetosDemo).
+ * Retos: aceptar retos semanales, hacer el entrenamiento guiado y ver el
+ * progreso. Cada reto pide el permiso de su parte (Entrenar o el árbol,
+ * App\Support\RetosAcceso). Las reglas están en App\Support\Progreso; "hoy"
+ * puede estar simulado para los admins (App\Support\RetosDemo).
  */
 class RetoController extends Controller
 {
@@ -29,13 +31,23 @@ class RetoController extends Controller
     /** Una sesión sin completar se puede retomar durante este tiempo extra. */
     private const RESUME_SECONDS = 2 * 3600;
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        $user = $request->user();
+
+        if (! RetosAcceso::misRetos($user)) {
+            // Quien solo revisa no tiene retos propios.
+            abort_unless(RetosAcceso::revisar($user), 403);
+
+            return redirect('/retos/revisiones');
+        }
+
         $today = RetosDemo::today($request);
         $progreso = RetosDemo::progreso($request);
         $medals = $progreso->medals();
+        $arbol = RetosAcceso::arbol($user);
 
-        $frontier = Habilidad::with(['retos' => fn ($q) => $q->where('kind', Reto::PRACTICA)])
+        $frontier = ! $arbol ? null : Habilidad::with(['retos' => fn ($q) => $q->where('kind', Reto::PRACTICA)])
             ->whereIn('id', $progreso->frontier())
             ->orderBy('tree')->orderBy('sort_order')
             ->get()
@@ -57,27 +69,30 @@ class RetoController extends Controller
                 ];
             });
 
-        $sueltos = Reto::where('kind', Reto::SUELTO)->orderBy('sort_order')->get()
+        $sueltos = ! RetosAcceso::entrenar($user) ? null : Reto::where('kind', Reto::SUELTO)->orderBy('sort_order')->get()
             ->map(fn (Reto $r) => [
                 ...RetosView::reto($r, $medals),
                 'blocked' => $progreso->cannotStartWeek($r),
             ]);
 
         $finished = RetoSemana::with(['reto.habilidad', 'entrenamientos'])
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->whereNull('abandoned_at')
             ->where('ends_on', '<', $today->toDateString())
+            ->whereHas('reto', fn ($q) => $q->whereIn('kind', RetosAcceso::kinds($user)))
             ->orderByDesc('ends_on')
             ->limit(6)
             ->get();
 
         return Inertia::render('retos/index', [
-            'active' => $progreso->activeWeeks()->map(fn (RetoSemana $s) => RetosView::activeWeek($s, $today, $medals))->values(),
-            'frontier' => $frontier->values(),
-            'sueltos' => $sueltos->values(),
+            'active' => RetosAcceso::activeWeeks($progreso)->map(fn (RetoSemana $s) => RetosView::activeWeek($s, $today, $medals)),
+            // Sin el permiso de esa parte, null (no viaja nada).
+            'frontier' => $frontier?->values(),
+            'sueltos' => $sueltos?->values(),
             'finished' => $finished->map(fn (RetoSemana $s) => RetosView::finishedWeek($s))->values(),
-            'pending_reviews' => ArbolView::pendingReviews(),
-            'progress' => $progreso->treeProgress(),
+            'pending_reviews' => ArbolView::pendingReviews($user),
+            'progress' => $arbol ? $progreso->treeProgress() : null,
+            'today' => $today->toDateString(),
             'celebrations' => Celebraciones::pull($progreso),
             'demo' => RetosDemo::toArray($request),
         ]);
@@ -86,6 +101,7 @@ class RetoController extends Controller
     /** Aceptar un reto semanal: empieza hoy y dura 7 días. */
     public function startWeek(Request $request, Reto $reto): RedirectResponse
     {
+        $this->authorizeReto($request, $reto);
         $progreso = RetosDemo::progreso($request);
 
         if ($reason = $progreso->cannotStartWeek($reto)) {
@@ -105,6 +121,7 @@ class RetoController extends Controller
     public function abandon(Request $request, RetoSemana $semana): RedirectResponse
     {
         abort_unless($semana->user_id === $request->user()->id, 404);
+        $this->authorizeReto($request, $semana->reto);
 
         if (! $semana->isActive(RetosDemo::today($request))) {
             return back()->with('error', 'Esa semana ya terminó.');
@@ -118,6 +135,7 @@ class RetoController extends Controller
     /** Página del entrenamiento guiado (y la sesión en curso, si hay). */
     public function train(Request $request, Reto $reto): Response|RedirectResponse
     {
+        $this->authorizeReto($request, $reto);
         $progreso = RetosDemo::progreso($request);
         $semana = $this->weekFor($progreso, $reto);
 
@@ -144,6 +162,7 @@ class RetoController extends Controller
     /** Iniciar el entrenamiento: el servidor anota la hora de inicio. */
     public function startSession(Request $request, Reto $reto): RedirectResponse
     {
+        $this->authorizeReto($request, $reto);
         $progreso = RetosDemo::progreso($request);
         $semana = $this->weekFor($progreso, $reto);
 
@@ -170,6 +189,7 @@ class RetoController extends Controller
     public function complete(Request $request, Entrenamiento $entrenamiento): RedirectResponse
     {
         abort_unless($entrenamiento->user_id === $request->user()->id, 404);
+        $this->authorizeReto($request, $entrenamiento->reto);
 
         if ($entrenamiento->completed_at !== null) {
             return redirect('/retos');
@@ -200,6 +220,12 @@ class RetoController extends Controller
         }
 
         return redirect('/retos')->with('success', $this->weekMessage($semana, $alreadyCounted));
+    }
+
+    /** Cada reto pide el permiso de su parte (Entrenar o el árbol). */
+    private function authorizeReto(Request $request, ?Reto $reto): void
+    {
+        abort_unless($reto && RetosAcceso::allows($request->user(), $reto), 403);
     }
 
     private function weekFor(Progreso $progreso, Reto $reto): ?RetoSemana

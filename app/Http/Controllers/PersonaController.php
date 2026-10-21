@@ -6,6 +6,7 @@ use App\Models\Habilidad;
 use App\Models\User;
 use App\Support\ArbolView;
 use App\Support\Progreso;
+use App\Support\RetosAcceso;
 use App\Support\RetosDemo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,15 +22,16 @@ use Inertia\Response;
  *
  * así el árbol nunca queda con una habilidad dominada sin sus requisitos.
  *
- * Demo: los admins pueden marcar su propio árbol (decisión del usuario). Al
- * abrirlo a profesores (fase E), un profesor no podrá marcar el suyo.
+ * El admin ve y marca el árbol de cualquiera, también el suyo (así prepara
+ * los árboles antes de liberarlos); el resto, solo el de otras personas que
+ * tengan el árbol (RetosAcceso::canReview).
  */
 class PersonaController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         return Inertia::render('retos/personas', [
-            'people' => User::withCount('habilidadesDominadas')->orderBy('name')->get()
+            'people' => RetosAcceso::people($request->user())->withCount('habilidadesDominadas')->orderBy('name')->get()
                 ->map(fn (User $u) => [
                     'id' => $u->id,
                     'name' => $u->name,
@@ -40,24 +42,26 @@ class PersonaController extends Controller
                 ])
                 ->values(),
             'total' => Habilidad::count(),
-            'pending_reviews' => ArbolView::pendingReviews(),
+            'pending_reviews' => ArbolView::pendingReviews($request->user()),
         ]);
     }
 
     public function show(Request $request, User $user): Response
     {
+        abort_unless(RetosAcceso::canReview($request->user(), $user), 403);
         $tree = ArbolController::tree($request);
 
         return Inertia::render('retos/persona', [
             'person' => ['id' => $user->id, 'name' => $user->name, 'apodo' => $user->apodo],
             'tree' => $tree,
             'nodes' => ArbolView::nodes(new Progreso($user, RetosDemo::today($request)), $tree),
-            'pending_reviews' => ArbolView::pendingReviews(),
+            'pending_reviews' => ArbolView::pendingReviews($request->user()),
         ]);
     }
 
     public function mark(Request $request, User $user, Habilidad $habilidad): RedirectResponse
     {
+        abort_unless(RetosAcceso::canReview($request->user(), $user), 403);
         $progreso = new Progreso($user, RetosDemo::today($request));
 
         if ($progreso->isDominated($habilidad->id)) {
@@ -83,6 +87,7 @@ class PersonaController extends Controller
 
     public function unmark(Request $request, User $user, Habilidad $habilidad): RedirectResponse
     {
+        abort_unless(RetosAcceso::canReview($request->user(), $user), 403);
         $progreso = new Progreso($user, RetosDemo::today($request));
 
         if (! $progreso->isDominated($habilidad->id)) {

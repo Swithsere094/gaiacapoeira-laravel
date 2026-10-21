@@ -17,6 +17,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/hooks/use-auth';
 import { shortDate } from '@/lib/calendar';
 import { TREE_LABELS } from '@/lib/retos';
 import type { Tree } from '@/lib/retos';
@@ -48,6 +49,7 @@ export default function RevisionesPage({
     pending_reviews: number;
 }) {
     const { confirm } = useConfirm();
+    const { isAdmin } = useAuth();
     const [rejecting, setRejecting] = useState<Review | null>(null);
 
     const approve = async (r: Review) => {
@@ -188,10 +190,10 @@ export default function RevisionesPage({
                         </section>
                     )}
 
-                    {pending.length > 0 && (
+                    {isAdmin && pending.length > 0 && (
                         <p className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="h-3.5 w-3.5" />
-                            Demo: los admins pueden responder sus propios
+                            Como admin, también puedes responder tus propios
                             pedidos.
                         </p>
                     )}

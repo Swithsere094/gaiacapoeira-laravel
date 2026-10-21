@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Lock, Sparkles, Target, Trophy } from 'lucide-react';
+import { Dumbbell, Lock, Sparkles, Target, Trophy } from 'lucide-react';
 import { useConfirm } from '@/components/confirm-dialog';
 import { Footer } from '@/components/footer';
 import { Navigation } from '@/components/navigation';
@@ -34,13 +34,17 @@ import type {
 
 interface Props {
     active: SemanaActiva[];
-    frontier: HabilidadFrontera[];
-    sueltos: RetoSuelto[];
+    /** Null sin el permiso del árbol. */
+    frontier: HabilidadFrontera[] | null;
+    /** Los retos de Entrenar (null sin su permiso). */
+    sueltos: RetoSuelto[] | null;
     finished: SemanaTerminada[];
     pending_reviews: number;
-    progress: TreeProgress;
+    progress: TreeProgress | null;
+    today: string;
     celebrations: Celebration[];
-    demo: RetosDemoState;
+    /** Controles de prueba (null si no es admin). */
+    demo: RetosDemoState | null;
 }
 
 function SectionTitle({
@@ -157,6 +161,7 @@ export default function RetosPage({
     finished,
     pending_reviews,
     progress,
+    today,
     celebrations,
     demo,
 }: Props) {
@@ -194,9 +199,9 @@ export default function RetosPage({
                         ganas bronce, con 5 plata y con 6 o 7 oro.
                     </RetosHeader>
 
-                    <TreeProgressRings progress={progress} />
+                    {progress && <TreeProgressRings progress={progress} />}
 
-                    <DemoBar demo={demo} />
+                    {demo && <DemoBar demo={demo} />}
                     <FlashMessage />
 
                     {/* ── En curso ── */}
@@ -217,7 +222,7 @@ export default function RetosPage({
                                     <ActiveWeekCard
                                         key={semana.id}
                                         semana={semana}
-                                        today={demo.today}
+                                        today={today}
                                         onAbandon={(s) => void abandon(s)}
                                     />
                                 ))}
@@ -226,91 +231,97 @@ export default function RetosPage({
                     </section>
 
                     {/* ── Del árbol ── */}
-                    <section>
-                        <SectionTitle
-                            icon={Sparkles}
-                            title="Para avanzar en el árbol"
-                            subtitle="Las habilidades que tienes desbloqueadas. Puedes trabajar una o varias a la vez."
-                        />
-                        <div className="grid gap-8 lg:grid-cols-2">
-                            {trees.map((tree) => {
-                                const skills = frontier.filter(
-                                    (s) => s.tree === tree,
-                                );
+                    {frontier && (
+                        <section>
+                            <SectionTitle
+                                icon={Sparkles}
+                                title="Para avanzar en el árbol"
+                                subtitle="Las habilidades que tienes desbloqueadas. Puedes trabajar una o varias a la vez."
+                            />
+                            <div className="grid gap-8 lg:grid-cols-2">
+                                {trees.map((tree) => {
+                                    const skills = frontier.filter(
+                                        (s) => s.tree === tree,
+                                    );
 
-                                return (
-                                    <div key={tree}>
-                                        <h3 className="mb-3 text-sm font-semibold tracking-wide text-primary uppercase">
-                                            {TREE_LABELS[tree]}
-                                        </h3>
-                                        {skills.length === 0 ? (
+                                    return (
+                                        <div key={tree}>
+                                            <h3 className="mb-3 text-sm font-semibold tracking-wide text-primary uppercase">
+                                                {TREE_LABELS[tree]}
+                                            </h3>
+                                            {skills.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                    No hay habilidades
+                                                    disponibles en este árbol.
+                                                </p>
+                                            ) : (
+                                                <div className="grid gap-4">
+                                                    {skills.map((skill) => (
+                                                        <SkillCard
+                                                            key={skill.id}
+                                                            skill={skill}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ── Entrenar (en la base, kind = suelto) ── */}
+                    {sueltos && (
+                        <section>
+                            <SectionTitle
+                                icon={Dumbbell}
+                                title="Entrenar"
+                                subtitle="Flexibilidad, fuerza, resistencia y más. Cada reto da su medalla."
+                            />
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {sueltos.map((reto) => (
+                                    <div
+                                        key={reto.id}
+                                        className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5"
+                                    >
+                                        <div>
+                                            <IconBadge
+                                                icon={categoryIcon(
+                                                    reto.category,
+                                                )}
+                                                className="mb-3"
+                                            />
+                                            <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                                                {CATEGORY_LABELS[
+                                                    reto.category ?? ''
+                                                ] ?? 'Entrenar'}
+                                            </p>
+                                            <h3 className="mt-1 font-serif text-lg font-semibold text-foreground">
+                                                {reto.title}
+                                            </h3>
                                             <p className="text-sm text-muted-foreground">
-                                                No hay habilidades disponibles
-                                                en este árbol.
+                                                {formatMinutes(reto.minutes)}{' '}
+                                                por día
                                             </p>
-                                        ) : (
-                                            <div className="grid gap-4">
-                                                {skills.map((skill) => (
-                                                    <SkillCard
-                                                        key={skill.id}
-                                                        skill={skill}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
+                                            {reto.description && (
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {reto.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <MedalCounts medals={reto.medals} />
+                                        <div className="mt-auto">
+                                            <AcceptButton
+                                                reto={reto}
+                                                blocked={reto.blocked}
+                                            />
+                                        </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-
-                    {/* ── Sueltos ── */}
-                    <section>
-                        <SectionTitle
-                            icon={Target}
-                            title="Retos sueltos"
-                            subtitle="No dependen del árbol: flexibilidad, fuerza, resistencia y más. También dan medallas."
-                        />
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {sueltos.map((reto) => (
-                                <div
-                                    key={reto.id}
-                                    className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5"
-                                >
-                                    <div>
-                                        <IconBadge
-                                            icon={categoryIcon(reto.category)}
-                                            className="mb-3"
-                                        />
-                                        <p className="text-xs font-medium tracking-wide text-primary uppercase">
-                                            {CATEGORY_LABELS[
-                                                reto.category ?? ''
-                                            ] ?? 'Reto suelto'}
-                                        </p>
-                                        <h3 className="mt-1 font-serif text-lg font-semibold text-foreground">
-                                            {reto.title}
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatMinutes(reto.minutes)} por
-                                            día
-                                        </p>
-                                        {reto.description && (
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {reto.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <MedalCounts medals={reto.medals} />
-                                    <div className="mt-auto">
-                                        <AcceptButton
-                                            reto={reto}
-                                            blocked={reto.blocked}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* ── Terminadas ── */}
                     {finished.length > 0 && (

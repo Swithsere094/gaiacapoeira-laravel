@@ -22,7 +22,8 @@ interface Props {
     pending_reviews: number;
     progress: TreeProgress;
     celebrations: Celebration[];
-    demo: RetosDemoState;
+    /** Controles de prueba (null si no es admin). */
+    demo: RetosDemoState | null;
 }
 
 export default function ArbolPage({
@@ -63,7 +64,7 @@ export default function ArbolPage({
 
                     <TreeProgressRings progress={progress} linked={false} />
 
-                    <DemoBar demo={demo} />
+                    {demo && <DemoBar demo={demo} />}
                     {!node && <FlashMessage />}
 
                     <TreeSwitch tree={tree} baseUrl="/retos/arbol" />

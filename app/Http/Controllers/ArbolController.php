@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** El árbol de habilidades propio (demo de retos, solo admins). */
+/** El árbol de habilidades propio (permiso `retos.arbol`). */
 class ArbolController extends Controller
 {
     public function show(Request $request): Response
@@ -25,7 +25,7 @@ class ArbolController extends Controller
             'celebrations' => Celebraciones::pull($progreso),
             // ?habilidad=<id>: abre esa habilidad (al volver de un entrenamiento).
             'selected' => $request->string('habilidad')->toString() ?: null,
-            'pending_reviews' => ArbolView::pendingReviews(),
+            'pending_reviews' => ArbolView::pendingReviews($request->user()),
             'demo' => RetosDemo::toArray($request),
         ]);
     }

@@ -19,7 +19,10 @@ export type Permission =
     | 'politica.gestionar'
     | 'canciones.eliminar'
     | 'canciones.nossa'
-    | 'eventos.gestionar';
+    | 'eventos.gestionar'
+    | 'retos.entrenar'
+    | 'retos.arbol'
+    | 'retos.revisar';
 
 export interface Auth {
     user: AppUser | null;

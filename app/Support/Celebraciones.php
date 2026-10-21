@@ -19,6 +19,8 @@ use App\Models\Revision;
  * Al leerlos quedan marcados (`celebrated_at`): cada logro se celebra una sola
  * vez, en la primera página de retos (o el inicio) que la persona abra.
  * Las semanas terminadas sin medalla también se marcan, sin celebración.
+ * Solo de las partes que la persona ve (App\Support\RetosAcceso): lo demás
+ * queda sin marcar, para celebrarlo si algún día se le abre.
  */
 final class Celebraciones
 {
@@ -36,6 +38,7 @@ final class Celebraciones
             ->whereNull('abandoned_at')
             ->whereNull('celebrated_at')
             ->where('ends_on', '<', $progreso->today->toDateString())
+            ->whereHas('reto', fn ($q) => $q->whereIn('kind', RetosAcceso::kinds($progreso->user)))
             ->orderBy('ends_on')
             ->get();
 
@@ -89,6 +92,10 @@ final class Celebraciones
     /** @return list<array<string, mixed>> */
     private static function approvals(Progreso $progreso): array
     {
+        if (! RetosAcceso::arbol($progreso->user)) {
+            return [];
+        }
+
         $reviews = Revision::with('habilidad')
             ->where('user_id', $progreso->user->id)
             ->where('status', Revision::APROBADA)

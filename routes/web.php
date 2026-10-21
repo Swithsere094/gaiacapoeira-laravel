@@ -108,20 +108,27 @@ Route::middleware('auth')->group(function () {
             Route::put('usuarios/{user}', [UserController::class, 'update']);
             Route::delete('usuarios/{user}', [UserController::class, 'destroy']);
         });
+    });
 
-        // Retos y árbol de habilidades: DEMO, solo admins por ahora.
-        Route::prefix('retos')->group(function () {
-            Route::get('/', [RetoController::class, 'index'])->name('retos');
-            Route::post('{reto}/semana', [RetoController::class, 'startWeek'])->whereUuid('reto');
-            Route::post('semanas/{semana}/abandonar', [RetoController::class, 'abandon'])->whereUuid('semana');
-            Route::get('{reto}/entrenar', [RetoController::class, 'train'])->whereUuid('reto');
-            Route::post('{reto}/entrenar', [RetoController::class, 'startSession'])->whereUuid('reto');
-            Route::post('entrenamientos/{entrenamiento}/completar', [RetoController::class, 'complete'])->whereUuid('entrenamiento');
+    // ── Retos y árbol de habilidades ─────────────────────────────────
+    // Se liberan por partes, cada una con su permiso (App\Support\RetosAcceso).
+    // Las acciones de un reto revisan en el controlador el permiso de su
+    // parte (Entrenar o el árbol); /retos, que tenga alguno de los dos.
+    Route::prefix('retos')->group(function () {
+        Route::get('/', [RetoController::class, 'index'])->name('retos');
+        Route::post('{reto}/semana', [RetoController::class, 'startWeek'])->whereUuid('reto');
+        Route::post('semanas/{semana}/abandonar', [RetoController::class, 'abandon'])->whereUuid('semana');
+        Route::get('{reto}/entrenar', [RetoController::class, 'train'])->whereUuid('reto');
+        Route::post('{reto}/entrenar', [RetoController::class, 'startSession'])->whereUuid('reto');
+        Route::post('entrenamientos/{entrenamiento}/completar', [RetoController::class, 'complete'])->whereUuid('entrenamiento');
 
-            // Árbol propio (?arbol=movimiento|musicalidad) y pedido de revisión.
+        // Árbol propio (?arbol=movimiento|musicalidad) y pedido de revisión.
+        Route::middleware('can:'.Permissions::RETOS_ARBOL)->group(function () {
             Route::get('arbol', [ArbolController::class, 'show'])->name('retos.arbol');
             Route::post('habilidades/{habilidad}/revision', [RevisionController::class, 'request'])->whereUuid('habilidad');
+        });
 
+        Route::middleware('can:'.Permissions::RETOS_REVISAR)->group(function () {
             // Revisiones del reto secreto.
             Route::get('revisiones', [RevisionController::class, 'index'])->name('retos.revisiones');
             Route::post('revisiones/{revision}/aprobar', [RevisionController::class, 'approve'])->whereUuid('revision');
@@ -132,12 +139,14 @@ Route::middleware('auth')->group(function () {
             Route::get('personas/{user}', [PersonaController::class, 'show'])->whereUuid('user');
             Route::post('personas/{user}/habilidades/{habilidad}', [PersonaController::class, 'mark'])->whereUuid(['user', 'habilidad']);
             Route::delete('personas/{user}/habilidades/{habilidad}', [PersonaController::class, 'unmark'])->whereUuid(['user', 'habilidad']);
+        });
 
-            // Controles de prueba (día simulado, cronómetro rápido, reinicio).
-            Route::post('demo/dia-siguiente', [RetoDemoController::class, 'nextDay']);
-            Route::post('demo/hoy', [RetoDemoController::class, 'backToToday']);
-            Route::post('demo/rapido', [RetoDemoController::class, 'toggleFast']);
-            Route::post('demo/reiniciar', [RetoDemoController::class, 'reset']);
+        // Controles de prueba (día simulado, cronómetro rápido, reinicio): solo admins.
+        Route::middleware('admin')->prefix('demo')->group(function () {
+            Route::post('dia-siguiente', [RetoDemoController::class, 'nextDay']);
+            Route::post('hoy', [RetoDemoController::class, 'backToToday']);
+            Route::post('rapido', [RetoDemoController::class, 'toggleFast']);
+            Route::post('reiniciar', [RetoDemoController::class, 'reset']);
         });
     });
 });

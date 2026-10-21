@@ -21,7 +21,7 @@ export interface Medalla {
 const GROUPS = [
     { id: 'movimiento', label: TREE_LABELS.movimiento },
     { id: 'musicalidad', label: TREE_LABELS.musicalidad },
-    { id: 'sueltos', label: 'Retos sueltos' },
+    { id: 'sueltos', label: 'Entrenar' },
 ] as const;
 
 /** La mejor medalla ganada en ese reto (null = por ganar). */

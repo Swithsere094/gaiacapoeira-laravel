@@ -80,7 +80,7 @@ class RetosArbolTest extends TestCase
 
     // ── Acceso ──────────────────────────────────────────────────────
 
-    public function test_las_paginas_nuevas_son_solo_para_admins(): void
+    public function test_sin_permisos_no_hay_arbol_ni_revisiones(): void
     {
         $other = User::factory()->create();
         $revision = Revision::create(['user_id' => $other->id, 'habilidad_id' => $this->skill('ginga')->id, 'status' => 'pendiente']);

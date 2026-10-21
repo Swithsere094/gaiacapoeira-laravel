@@ -39,7 +39,8 @@ interface Props {
     session: Session | null;
     /** Hora del servidor al armar la página (para no depender del reloj del celular). */
     server_now: string;
-    demo: RetosDemoState;
+    /** Controles de prueba (null si no es admin). */
+    demo: RetosDemoState | null;
 }
 
 /** Pitido corto y vibración al cambiar de paso. */
@@ -295,7 +296,7 @@ function Training({ reto, semana, session, server_now, demo }: Props) {
                                     Iniciar entrenamiento ·{' '}
                                     {formatMinutes(reto.minutes)}
                                 </Button>
-                                {demo.fast && (
+                                {demo?.fast && (
                                     <span className="flex items-center gap-1.5 text-sm text-primary">
                                         <FastForward className="h-4 w-4" />
                                         Cronómetro rápido: dura 30 veces menos

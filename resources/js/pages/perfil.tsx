@@ -27,7 +27,7 @@ function useFlag(ms: number) {
 export default function Perfil({
     medallas,
 }: {
-    /** Medallas de retos (demo: solo llega para admins). */
+    /** Medallas de retos (null sin el permiso de Entrenar ni del árbol). */
     medallas: Medalla[] | null;
 }) {
     const { user } = useAuth();
@@ -176,7 +176,7 @@ export default function Perfil({
                         </CardContent>
                     </Card>
 
-                    {/* ── Medallas de retos (demo) ── */}
+                    {/* ── Medallas de retos ── */}
                     {medallas && (
                         <Card className="border-border bg-card">
                             <CardHeader className="border-b border-border pb-4">
@@ -185,8 +185,7 @@ export default function Perfil({
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
                                     Una por cada reto semanal: las que ya
-                                    ganaste y las que faltan (demo, solo
-                                    admins).
+                                    ganaste y las que faltan.
                                 </p>
                             </CardHeader>
                             <CardContent className="pt-6">

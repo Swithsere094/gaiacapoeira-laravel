@@ -287,7 +287,7 @@ function SecretPanel({
                             </Button>
                             <p className="text-xs text-muted-foreground">
                                 {node.review_blocked ??
-                                    'Cuando sientas que lo dominas, un admin lo revisa y desbloquea lo que sigue.'}
+                                    'Cuando sientas que lo dominas, pide la revisión: si la aprueban, se desbloquea lo que sigue.'}
                             </p>
                         </div>
                     )}

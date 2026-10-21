@@ -7,6 +7,7 @@ use App\Models\Habilidad;
 use App\Models\Reto;
 use App\Models\RetoSemana;
 use App\Models\Revision;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -117,9 +118,15 @@ final class ArbolView
         })->all());
     }
 
-    /** Cuántas revisiones esperan respuesta (para la pestaña "Revisiones"). */
-    public static function pendingReviews(): int
+    /** Cuántas revisiones puede responder y esperan respuesta (pestaña "Revisiones"). */
+    public static function pendingReviews(User $user): int
     {
-        return Revision::where('status', Revision::PENDIENTE)->count();
+        if (! RetosAcceso::revisar($user)) {
+            return 0;
+        }
+
+        return Revision::where('status', Revision::PENDIENTE)
+            ->whereIn('user_id', RetosAcceso::people($user)->select('id'))
+            ->count();
     }
 }

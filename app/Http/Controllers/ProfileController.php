@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Habilidad;
 use App\Models\Reto;
 use App\Support\Cordas;
+use App\Support\RetosAcceso;
 use App\Support\RetosDemo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,15 +25,15 @@ class ProfileController extends Controller
     public function show(Request $request): Response
     {
         return Inertia::render('perfil', [
-            // Medallas de retos (demo, solo admins por ahora).
-            'medallas' => $request->user()->isAdmin() ? $this->medallas($request) : null,
+            // Medallas de los retos que la persona ve (Entrenar, el árbol).
+            'medallas' => RetosAcceso::misRetos($request->user()) ? $this->medallas($request) : null,
         ]);
     }
 
     /**
-     * Vitrina de medallas: todos los retos semanales (los de práctica de cada
-     * habilidad y los sueltos), con las medallas ganadas en cada uno (0 = por
-     * ganar), agrupados por árbol y en el orden del árbol.
+     * Vitrina de medallas: todos los retos semanales que la persona ve (los de
+     * práctica de cada habilidad y los de Entrenar), con las medallas ganadas
+     * en cada uno (0 = por ganar), agrupados por árbol y en el orden del árbol.
      *
      * @return list<array{id: string, title: string, group: string, habilidad: string|null, icon: string|null, category: string|null, oro: int, plata: int, bronce: int}>
      */
@@ -42,7 +43,7 @@ class ProfileController extends Controller
         $none = ['oro' => 0, 'plata' => 0, 'bronce' => 0];
 
         return array_values(Reto::with('habilidad')
-            ->whereIn('kind', [Reto::PRACTICA, Reto::SUELTO])
+            ->whereIn('kind', array_values(array_intersect([Reto::PRACTICA, Reto::SUELTO], RetosAcceso::kinds($request->user()))))
             ->get()
             ->sortBy(fn (Reto $r) => [
                 $r->habilidad ? array_search($r->habilidad->tree, Habilidad::TREES, true) : 99,

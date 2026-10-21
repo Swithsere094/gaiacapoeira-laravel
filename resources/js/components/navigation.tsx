@@ -75,7 +75,7 @@ const baseNavItems = [
     { href: '/eventos', label: 'Eventos', icon: CalendarDays },
 ];
 
-// Retos: demo, por ahora solo para admins.
+// Retos: con cualquiera de sus permisos (se liberan por partes).
 const retosNavItem = { href: '/retos', label: 'Retos', icon: Trophy };
 
 export function Navigation() {
@@ -84,7 +84,9 @@ export function Navigation() {
     const [scrolled, setScrolled] = useState(false);
     const { user, loading, signOut, can, isAdmin } = useAuth();
     const canViewAnalytics = can('analiticas.ver');
-    const navItems = isAdmin ? [...baseNavItems, retosNavItem] : baseNavItems;
+    const canRetos =
+        can('retos.entrenar') || can('retos.arbol') || can('retos.revisar');
+    const navItems = canRetos ? [...baseNavItems, retosNavItem] : baseNavItems;
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 0);

@@ -1,23 +1,48 @@
 import { Link } from '@inertiajs/react';
+import { useAuth } from '@/hooks/use-auth';
 import { usePathname } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import type { Permission } from '@/types';
 
-const TABS = [
-    { href: '/retos', label: 'Mis retos' },
-    { href: '/retos/arbol', label: 'Árbol' },
-    { href: '/retos/revisiones', label: 'Revisiones' },
-    { href: '/retos/personas', label: 'Personas' },
+/** Cada pestaña, con los permisos que la muestran (alguno de ellos). */
+const TABS: { href: string; label: string; needs: Permission[] }[] = [
+    {
+        href: '/retos',
+        label: 'Mis retos',
+        needs: ['retos.entrenar', 'retos.arbol'],
+    },
+    { href: '/retos/arbol', label: 'Árbol', needs: ['retos.arbol'] },
+    {
+        href: '/retos/revisiones',
+        label: 'Revisiones',
+        needs: ['retos.revisar'],
+    },
+    { href: '/retos/personas', label: 'Personas', needs: ['retos.revisar'] },
 ];
+
+/** En el celular, las pestañas en una fila de igual ancho. */
+const COLS = ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4'];
 
 /** Pestañas de la sección de retos (con las revisiones pendientes). */
 export function RetosTabs({ pendingReviews }: { pendingReviews: number }) {
     const pathname = usePathname();
+    const { can } = useAuth();
+    const tabs = TABS.filter((tab) => tab.needs.some(can));
+
+    // Con una sola pestaña (por ejemplo, solo Entrenar) no hace falta.
+    if (tabs.length < 2) {
+        return null;
+    }
 
     return (
         <nav aria-label="Secciones de retos">
-            {/* En el celular, las 4 pestañas en una fila de igual ancho. */}
-            <div className="grid grid-cols-4 rounded-lg bg-secondary p-1 sm:inline-flex">
-                {TABS.map((tab) => {
+            <div
+                className={cn(
+                    'grid rounded-lg bg-secondary p-1 sm:inline-flex',
+                    COLS[tabs.length],
+                )}
+            >
+                {tabs.map((tab) => {
                     const active =
                         tab.href === '/retos'
                             ? pathname === '/retos'

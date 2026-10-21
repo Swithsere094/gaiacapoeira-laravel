@@ -30,6 +30,15 @@ final class Permissions
     /** Crear eventos; editar y eliminar los propios (EventoPolicy). */
     public const EVENTOS_GESTIONAR = 'eventos.gestionar';
 
+    /** Retos de la sección Entrenar (flexibilidad, fuerza…) y sus medallas. */
+    public const RETOS_ENTRENAR = 'retos.entrenar';
+
+    /** El árbol de habilidades: sus retos, el secreto y pedir revisión. */
+    public const RETOS_ARBOL = 'retos.arbol';
+
+    /** Revisiones y Personas (nunca sobre el árbol propio, salvo el admin). */
+    public const RETOS_REVISAR = 'retos.revisar';
+
     public const ALL = [
         self::ANALITICAS_VER,
         self::GALERA_GESTIONAR,
@@ -37,5 +46,8 @@ final class Permissions
         self::CANCIONES_ELIMINAR,
         self::CANCIONES_NOSSA,
         self::EVENTOS_GESTIONAR,
+        self::RETOS_ENTRENAR,
+        self::RETOS_ARBOL,
+        self::RETOS_REVISAR,
     ];
 }

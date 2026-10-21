@@ -20,7 +20,7 @@ export function retoContext(reto: SemanaActiva['reto']): string {
         return `${TREE_LABELS[reto.habilidad.tree]} · ${reto.habilidad.name}`;
     }
 
-    return CATEGORY_LABELS[reto.category ?? ''] ?? 'Reto suelto';
+    return CATEGORY_LABELS[reto.category ?? ''] ?? 'Entrenar';
 }
 
 /** Un reto en curso: días de la semana, cómo va y el botón de entrenar. */

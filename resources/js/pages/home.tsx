@@ -16,11 +16,12 @@ import type { SemanaActiva } from '@/lib/retos';
 
 interface Props {
     calendar: CalendarData;
-    /** Retos en curso (demo: solo llega para admins). */
+    /** Retos en curso (null sin el permiso de Entrenar ni del árbol). */
     retos: {
         active: SemanaActiva[];
         today: string;
-        progress: TreeProgress;
+        /** Null sin el permiso del árbol. */
+        progress: TreeProgress | null;
         celebrations: Celebration[];
     } | null;
 }
@@ -87,7 +88,7 @@ export default function Home({ calendar, retos }: Props) {
     );
 }
 
-/** "Tus retos": lo que hay que entrenar hoy (demo, solo admins). */
+/** "Tus retos": lo que hay que entrenar hoy. */
 function RetosSection({ retos }: { retos: NonNullable<Props['retos']> }) {
     return (
         <section
@@ -104,7 +105,7 @@ function RetosSection({ retos }: { retos: NonNullable<Props['retos']> }) {
                         Tus retos
                     </h2>
                     <p className="mt-1 text-muted-foreground">
-                        Demo: por ahora solo lo ven los admins
+                        Lo que te toca entrenar esta semana
                     </p>
                 </div>
                 <Link
@@ -118,7 +119,9 @@ function RetosSection({ retos }: { retos: NonNullable<Props['retos']> }) {
                 </Link>
             </div>
 
-            <TreeProgressRings progress={retos.progress} className="mb-4" />
+            {retos.progress && (
+                <TreeProgressRings progress={retos.progress} className="mb-4" />
+            )}
 
             {retos.active.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
