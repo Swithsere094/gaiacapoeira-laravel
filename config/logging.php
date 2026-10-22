@@ -65,6 +65,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Peticiones y respuestas de la API de Hostinger (sin el token).
+        'hostinger' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/hostinger.log'),
+            'level' => 'debug',
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

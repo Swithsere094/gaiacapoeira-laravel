@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\EventoPruebaController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ArbolController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\EventoController;
+use App\Http\Controllers\EventoPruebaPaginaController;
 use App\Http\Controllers\GaleraController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PersonaController;
@@ -16,8 +18,21 @@ use App\Http\Controllers\RetoDemoController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\UploadController;
+use App\Http\Middleware\ResolveEventoPrueba;
+use App\Models\EventoPrueba;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
+
+// ── Subdominios de eventos de prueba ({slug}.gaiacapoeira.com) ───────
+// Van ANTES que el resto: las demás rutas no tienen dominio y atienden
+// cualquier host. El patrón deja afuera los subdominios reservados (www,
+// mail…), que siguen yendo al sitio principal. Página pública.
+Route::domain('{evento}.'.config('services.hostinger.domain'))
+    ->where(['evento' => '(?!(?:'.implode('|', EventoPrueba::RESERVADOS).')\.)[a-z0-9-]{3,63}'])
+    ->middleware(ResolveEventoPrueba::class)
+    ->group(function () {
+        Route::get('/', EventoPruebaPaginaController::class)->name('eventos-prueba.subdominio');
+    });
 
 // ── Público (sin sesión) ─────────────────────────────────────────────
 Route::middleware('guest')->prefix('auth')->group(function () {
@@ -28,6 +43,10 @@ Route::middleware('guest')->prefix('auth')->group(function () {
 // "Olvidé mi contraseña" ya no existe (lo resuelve un admin): la dirección
 // vieja lleva al login, que explica qué hacer.
 Route::get('auth/olvide-contrasena', fn () => redirect('/auth/login'));
+
+// Página de un evento de prueba sin depender del subdominio (respaldo).
+Route::get('eventos-prueba/{evento}', EventoPruebaPaginaController::class)
+    ->middleware(ResolveEventoPrueba::class)->name('eventos-prueba.show');
 
 // ── Todo lo demás requiere sesión ────────────────────────────────────
 Route::middleware('auth')->group(function () {
@@ -107,6 +126,11 @@ Route::middleware('auth')->group(function () {
             Route::post('usuarios', [UserController::class, 'store']);
             Route::put('usuarios/{user}', [UserController::class, 'update']);
             Route::delete('usuarios/{user}', [UserController::class, 'destroy']);
+
+            // Prueba de concepto: subdominios por evento con la API de Hostinger.
+            Route::get('eventos-prueba', [EventoPruebaController::class, 'index'])->name('admin.eventos-prueba');
+            Route::post('eventos-prueba', [EventoPruebaController::class, 'store'])->middleware('throttle:10,1');
+            Route::delete('eventos-prueba/{eventoPrueba}', [EventoPruebaController::class, 'destroy'])->whereUuid('eventoPrueba');
         });
     });
 

@@ -43,4 +43,13 @@ return [
         'cantorias_playlist' => env('YOUTUBE_CANTORIAS_PLAYLIST_ID'),
     ],
 
+    // Prueba de concepto: crear {slug}.gaiacapoeira.com desde
+    // /admin/eventos-prueba con la API de Hostinger (App\Services\HostingerClient).
+    'hostinger' => [
+        'token' => env('HOSTINGER_API_TOKEN'),
+        'url' => env('HOSTINGER_API_URL', 'https://developers.hostinger.com'),
+        'username' => env('HOSTINGER_USERNAME'),
+        'domain' => env('HOSTINGER_DOMAIN', 'gaiacapoeira.com'),
+    ],
+
 ];
