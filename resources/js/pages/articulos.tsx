@@ -1,7 +1,9 @@
-import { SectionLayout } from '@/components/section-layout';
-import { ArticleCard } from '@/components/article-card';
 import { Link } from '@inertiajs/react';
-import { PenLine } from 'lucide-react';
+import { PenLine, Newspaper } from 'lucide-react';
+import { ArticleCard } from '@/components/articulos/article-card';
+import { PanelTitle } from '@/components/headings';
+import { PageHeader } from '@/components/page-header';
+import { PageLayout } from '@/components/page-layout';
 
 const articles = [
     {
@@ -83,9 +85,15 @@ const categories = [
 
 export default function ArticulosPage() {
     return (
-        <SectionLayout
+        <PageLayout
             title="Artículos"
-            description="Escritos por miembros de nuestra comunidad sobre historia, técnicas, filosofía y experiencias en la capoeira."
+            header={
+                <PageHeader
+                    icon={Newspaper}
+                    title="Artículos"
+                    description="Escritos por miembros de nuestra comunidad sobre historia, técnicas, filosofía y experiencias en la capoeira."
+                />
+            }
         >
             {/* Category Filter */}
             <div className="mb-8 flex flex-wrap gap-2">
@@ -104,15 +112,15 @@ export default function ArticulosPage() {
             </div>
 
             {/* Write Article CTA */}
-            <div className="mb-8 flex flex-col items-center justify-between gap-4 rounded-xl bg-card p-6 sm:flex-row">
+            <div className="mb-8 flex flex-col items-center justify-between gap-4 panel p-6 sm:flex-row">
                 <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
                         <PenLine className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h2 className="font-serif font-bold text-foreground">
+                        <PanelTitle>
                             ¿Quieres compartir tu conocimiento?
-                        </h2>
+                        </PanelTitle>
                         <p className="text-sm text-muted-foreground">
                             Los miembros del grupo pueden enviar artículos para
                             publicar.
@@ -133,6 +141,6 @@ export default function ArticulosPage() {
                     <ArticleCard key={article.id} {...article} />
                 ))}
             </div>
-        </SectionLayout>
+        </PageLayout>
     );
 }

@@ -1,11 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Download } from 'lucide-react';
-import { Navigation } from '@/components/navigation';
 import { Footer } from '@/components/footer';
+import { Navigation } from '@/components/navigation';
+import { ManualToc } from '@/components/politica/manual/manual-toc';
+import { useMDXComponents } from '@/components/politica/manual/mdx-components';
 import { Button } from '@/components/ui/button';
-import { ManualToc } from '@/components/manual-toc';
 import ManualContent from '@/content/politica/manual-convivencia.mdx';
-import { useMDXComponents } from '@/components/mdx-components';
 
 export default function ManualConvivenciaPage() {
     return (

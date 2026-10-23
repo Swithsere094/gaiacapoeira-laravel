@@ -1,7 +1,7 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { Button } from '@/components/ui/button';
+import { FormActions } from '@/components/form-actions';
+import { FormError } from '@/components/form-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -106,7 +106,7 @@ export function EventFormDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="font-serif text-xl">
+                    <DialogTitle>
                         {editing ? 'Editar evento' : 'Nuevo evento'}
                     </DialogTitle>
                 </DialogHeader>
@@ -123,7 +123,7 @@ export function EventFormDialog({
                             required
                             maxLength={255}
                             disabled={form.processing}
-                            placeholder="Ej: Clase de Angola"
+                            placeholder="Ej.: Clase de Angola"
                         />
                     </div>
 
@@ -137,7 +137,7 @@ export function EventFormDialog({
                             }
                             maxLength={255}
                             disabled={form.processing}
-                            placeholder="Ej: Academia, Parque Central"
+                            placeholder="Ej.: Academia, Parque Central"
                         />
                     </div>
 
@@ -288,7 +288,7 @@ export function EventFormDialog({
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="ev-end-time">
-                                        Hora de fin
+                                        Hora de fin (opcional)
                                     </Label>
                                     <Input
                                         id="ev-end-time"
@@ -330,37 +330,14 @@ export function EventFormDialog({
                         />
                     </div>
 
-                    {formError && (
-                        <p
-                            role="alert"
-                            className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                        >
-                            {formError}
-                        </p>
-                    )}
+                    <FormError message={formError} />
 
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => onOpenChange(false)}
-                            disabled={form.processing}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={form.processing}>
-                            {form.processing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Guardando...
-                                </>
-                            ) : editing ? (
-                                'Guardar cambios'
-                            ) : (
-                                'Crear evento'
-                            )}
-                        </Button>
-                    </div>
+                    <FormActions
+                        onCancel={() => onOpenChange(false)}
+                        processing={form.processing}
+                    >
+                        {editing ? 'Guardar cambios' : 'Crear evento'}
+                    </FormActions>
                 </form>
             </DialogContent>
         </Dialog>

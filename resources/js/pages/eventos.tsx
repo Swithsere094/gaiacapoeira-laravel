@@ -1,14 +1,14 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { CalendarDays, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { CalendarNav } from '@/components/calendar/calendar-nav';
-import { EventDetailDialog } from '@/components/calendar/event-detail-dialog';
-import { EventFormDialog } from '@/components/calendar/event-form-dialog';
-import { MonthView } from '@/components/calendar/month-view';
-import { WeekView } from '@/components/calendar/week-view';
 import { useConfirm } from '@/components/confirm-dialog';
-import { Footer } from '@/components/footer';
-import { Navigation } from '@/components/navigation';
+import { CalendarNav } from '@/components/eventos/calendar-nav';
+import { EventDetailDialog } from '@/components/eventos/event-detail-dialog';
+import { EventFormDialog } from '@/components/eventos/event-form-dialog';
+import { MonthView } from '@/components/eventos/month-view';
+import { WeekView } from '@/components/eventos/week-view';
+import { PageHeader } from '@/components/page-header';
+import { PageLayout } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import type { CalendarData, CalendarEvent } from '@/lib/calendar';
@@ -82,24 +82,15 @@ export default function EventosPage({ calendar }: { calendar: CalendarData }) {
         setSelected({ event, date });
 
     return (
-        <div className="min-h-screen bg-background">
-            <Head title="Eventos" />
-            <Navigation />
-
-            <main className="pt-24 pb-16">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <h1 className="flex items-center gap-3 font-serif text-3xl font-bold text-foreground">
-                                <CalendarDays className="h-8 w-8 text-primary" />
-                                Eventos
-                            </h1>
-                            <p className="mt-1 text-muted-foreground">
-                                Clases, rodas y encuentros del grupo (hora de
-                                Colombia)
-                            </p>
-                        </div>
-                        {canCreate && (
+        <PageLayout
+            title="Eventos"
+            header={
+                <PageHeader
+                    icon={CalendarDays}
+                    title="Eventos"
+                    description="Clases, rodas y encuentros del grupo (hora de Colombia)"
+                    actions={
+                        canCreate && (
                             <Button
                                 onClick={() => openForm(null)}
                                 className="gap-2"
@@ -107,54 +98,46 @@ export default function EventosPage({ calendar }: { calendar: CalendarData }) {
                                 <Plus className="h-4 w-4" />
                                 Nuevo evento
                             </Button>
-                        )}
-                    </div>
-
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <CalendarNav
-                            calendar={calendar}
-                            url="/eventos"
-                            params={{ vista: calendar.view }}
-                        />
-                        <div
-                            className="inline-flex rounded-lg bg-secondary p-1"
-                            role="group"
-                            aria-label="Vista del calendario"
+                        )
+                    }
+                />
+            }
+        >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <CalendarNav
+                    calendar={calendar}
+                    url="/eventos"
+                    params={{ vista: calendar.view }}
+                />
+                <div
+                    className="inline-flex rounded-lg bg-secondary p-1"
+                    role="group"
+                    aria-label="Vista del calendario"
+                >
+                    {VIEWS.map((v) => (
+                        <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => changeView(v.id)}
+                            aria-pressed={calendar.view === v.id}
+                            className={cn(
+                                'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
+                                calendar.view === v.id
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:text-foreground',
+                            )}
                         >
-                            {VIEWS.map((v) => (
-                                <button
-                                    key={v.id}
-                                    type="button"
-                                    onClick={() => changeView(v.id)}
-                                    aria-pressed={calendar.view === v.id}
-                                    className={cn(
-                                        'rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-                                        calendar.view === v.id
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'text-muted-foreground hover:text-foreground',
-                                    )}
-                                >
-                                    {v.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {calendar.view === 'mes' ? (
-                        <MonthView
-                            calendar={calendar}
-                            onSelectEvent={onSelectEvent}
-                        />
-                    ) : (
-                        <WeekView
-                            calendar={calendar}
-                            onSelectEvent={onSelectEvent}
-                        />
-                    )}
+                            {v.label}
+                        </button>
+                    ))}
                 </div>
-            </main>
+            </div>
 
-            <Footer />
+            {calendar.view === 'mes' ? (
+                <MonthView calendar={calendar} onSelectEvent={onSelectEvent} />
+            ) : (
+                <WeekView calendar={calendar} onSelectEvent={onSelectEvent} />
+            )}
 
             <EventDetailDialog
                 event={selected?.event ?? null}
@@ -173,6 +156,6 @@ export default function EventosPage({ calendar }: { calendar: CalendarData }) {
                     defaultDate={defaultDate}
                 />
             )}
-        </div>
+        </PageLayout>
     );
 }

@@ -1,6 +1,8 @@
-import { useState } from 'react';
 import { Play, Calendar, MapPin, Eye, X, Trash2 } from 'lucide-react';
-import { toEmbedUrl, getYouTubeThumbnail } from '@/lib/utils/video-url';
+import { useState } from 'react';
+import { IconButton } from '@/components/icon-button';
+import { formatDate } from '@/lib/dates';
+import { toEmbedUrl, getYouTubeThumbnail } from '@/lib/video-url';
 
 export interface VideoCardProps {
     id: string;
@@ -27,29 +29,25 @@ export function VideoCard({
     const embedUrl = toEmbedUrl(videoUrl);
     const thumbnail = getYouTubeThumbnail(videoUrl);
 
-    const formattedDate = eventDate
-        ? new Date(eventDate).toLocaleDateString('es-ES', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-          })
-        : null;
+    const formattedDate = eventDate ? formatDate(eventDate) : null;
 
     return (
         <>
-            <article className="group relative cursor-pointer overflow-hidden rounded-xl bg-card transition-all hover:scale-[1.02] hover:shadow-xl">
+            <article className="group relative cursor-pointer overflow-hidden panel transition-all hover:scale-[1.02] hover:shadow-xl">
                 {/* Delete button */}
                 {onDelete && (
-                    <button
+                    // Con mouse aparece al pasar por la tarjeta; en pantallas
+                    // táctiles (sin hover) y con teclado se ve siempre.
+                    <IconButton
+                        icon={Trash2}
+                        label="Eliminar roda"
+                        tone="destructive"
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete();
                         }}
-                        className="absolute top-2 right-2 z-10 rounded-md bg-background/80 p-1.5 text-muted-foreground opacity-0 transition-colors group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="Eliminar roda"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </button>
+                        className="absolute top-2 right-2 z-10 bg-background/80 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                    />
                 )}
 
                 {/* Thumbnail */}

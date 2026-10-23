@@ -82,9 +82,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
             >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="font-serif text-xl">
-                            {options?.title}
-                        </DialogTitle>
+                        <DialogTitle>{options?.title}</DialogTitle>
                         {options?.description && (
                             <DialogDescription>
                                 {options.description}

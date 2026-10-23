@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { SectionLayout } from '@/components/section-layout';
 import {
     BookOpen,
     Volume2,
     CheckCircle,
     ChevronDown,
     ChevronUp,
+    Languages,
 } from 'lucide-react';
+import { useState } from 'react';
+import { PageHeader } from '@/components/page-header';
+import { PageLayout } from '@/components/page-layout';
 import { cn } from '@/lib/utils';
 
 const lessons = [
@@ -264,12 +266,18 @@ export default function PortuguesPage() {
     const progress = Math.round((completedWords.size / totalWords) * 100);
 
     return (
-        <SectionLayout
-            title="Aprende Portugués"
-            description="Sistema de aprendizaje del idioma portugués enfocado en el vocabulario y expresiones de la capoeira."
+        <PageLayout
+            title="Aprende portugués"
+            header={
+                <PageHeader
+                    icon={Languages}
+                    title="Aprende portugués"
+                    description="Sistema de aprendizaje del idioma portugués enfocado en el vocabulario y expresiones de la capoeira."
+                />
+            }
         >
             {/* Progress */}
-            <div className="mb-8 rounded-xl bg-card p-6">
+            <div className="mb-8 panel p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <BookOpen className="h-6 w-6 text-primary" />
@@ -295,10 +303,7 @@ export default function PortuguesPage() {
             {/* Lessons */}
             <div className="space-y-4">
                 {lessons.map((lesson) => (
-                    <div
-                        key={lesson.id}
-                        className="overflow-hidden rounded-xl bg-card"
-                    >
+                    <div key={lesson.id} className="overflow-hidden panel">
                         {/* Lesson Header */}
                         <button
                             onClick={() =>
@@ -371,7 +376,8 @@ export default function PortuguesPage() {
                                                     }
                                                     aria-pressed={isCompleted}
                                                     className={cn(
-                                                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                                                        // after: agranda la zona que se toca (40 px) sin cambiar el círculo.
+                                                        "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors after:absolute after:-inset-2 after:content-['']",
                                                         isCompleted
                                                             ? 'border-accent bg-accent text-accent-foreground'
                                                             : 'border-muted-foreground hover:border-primary',
@@ -411,6 +417,6 @@ export default function PortuguesPage() {
                     </div>
                 ))}
             </div>
-        </SectionLayout>
+        </PageLayout>
     );
 }

@@ -42,7 +42,7 @@ export function EventDetailDialog({
                 {event && (
                     <>
                         <DialogHeader>
-                            <DialogTitle className="pr-6 font-serif text-xl break-words">
+                            <DialogTitle className="pr-6 break-words">
                                 {event.title}
                             </DialogTitle>
                             {date && (

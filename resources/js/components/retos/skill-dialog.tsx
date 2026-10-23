@@ -8,7 +8,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { FlashMessage } from '@/components/retos/flash-message';
+import { FlashMessage } from '@/components/flash-message';
 import { MedalCounts } from '@/components/retos/medals';
 import { SecretTeaser } from '@/components/retos/secret-teaser';
 import { SkillFocus } from '@/components/retos/skill-focus';
@@ -103,9 +103,7 @@ export function SkillDialog({
                             <div>
                                 <StatusChip node={node} />
                             </div>
-                            <DialogTitle className="font-serif text-2xl">
-                                {node.name}
-                            </DialogTitle>
+                            <DialogTitle>{node.name}</DialogTitle>
                             {node.description && (
                                 <DialogDescription>
                                     {node.description}

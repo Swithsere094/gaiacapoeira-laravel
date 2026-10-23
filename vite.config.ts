@@ -75,6 +75,10 @@ export default defineConfig({
             'resources/js/content/**',
             'public/**',
         ],
+        // Imports siempre en el mismo orden: paquetes, después '@/…' (alfabético).
+        sortImports: {
+            newlinesBetween: false,
+        },
         sortTailwindcss: {
             functions: ['clsx', 'cn', 'cva'],
             stylesheet: 'resources/css/app.css',

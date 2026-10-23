@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { DayEventList } from '@/components/calendar/day-event-list';
+import { DayEventList } from '@/components/eventos/day-event-list';
 import type { CalendarData, CalendarEvent } from '@/lib/calendar';
 import {
     dayOfMonth,

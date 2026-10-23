@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Lock, User } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { FormError } from '@/components/form-error';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -11,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function Login() {
+export default function LoginPage() {
     const form = useForm({ username: '', password: '' });
     const error = form.errors.username ?? form.errors.password;
 
@@ -91,21 +92,14 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {error && (
-                            <p
-                                role="alert"
-                                className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive"
-                            >
-                                {error}
-                            </p>
-                        )}
+                        <FormError message={error} className="text-center" />
 
                         <Button
                             type="submit"
                             className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={form.processing}
                         >
-                            {form.processing ? 'Entrando...' : 'Entrar'}
+                            {form.processing ? 'Entrando…' : 'Entrar'}
                         </Button>
 
                         {/* Sin autoservicio a propósito (auditoría P1): el anterior

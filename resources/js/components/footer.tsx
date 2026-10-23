@@ -62,17 +62,17 @@ export function Footer() {
                         <ul className="space-y-2">
                             <li>
                                 <span className="text-muted-foreground">
-                                    Grupo de Capoeira
+                                    Grupo de capoeira
                                 </span>
                             </li>
                             <li>
                                 <span className="text-muted-foreground">
-                                    Clases y Entrenamientos
+                                    Clases y entrenamientos
                                 </span>
                             </li>
                             <li>
                                 <span className="text-muted-foreground">
-                                    Eventos y Batizados
+                                    Eventos y batizados
                                 </span>
                             </li>
                         </ul>

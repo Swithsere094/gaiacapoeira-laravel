@@ -1,11 +1,9 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useConfirm } from '@/components/confirm-dialog';
-import { Footer } from '@/components/footer';
-import { Navigation } from '@/components/navigation';
-import { FlashMessage } from '@/components/retos/flash-message';
-import { RetosHeader } from '@/components/retos/retos-header';
+import { FlashMessage } from '@/components/flash-message';
+import { RetosLayout } from '@/components/retos/retos-layout';
 import { StatusChip, dominatedText } from '@/components/retos/skill-dialog';
 import { SkillFocus } from '@/components/retos/skill-focus';
 import { SkillTree, TreeLegend } from '@/components/retos/skill-tree';
@@ -95,48 +93,35 @@ export default function PersonaPage({
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            <Head title={`Árbol de ${person.name}`} />
-            <Navigation />
+        <RetosLayout
+            title={`Árbol de ${person.name}`}
+            pendingReviews={pending_reviews}
+            className="space-y-6"
+            description="Toca una habilidad para marcarla como dominada (por ejemplo, si la persona ya la sabía al llegar al grupo) o para quitarla."
+        >
+            <Link
+                href="/retos/personas"
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                Volver a personas
+            </Link>
 
-            <main className="pt-24 pb-16">
-                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    <RetosHeader
-                        title={`Árbol de ${person.name}`}
-                        pendingReviews={pending_reviews}
-                    >
-                        Toca una habilidad para marcarla como dominada (por
-                        ejemplo, si la persona ya la sabía al llegar al grupo) o
-                        para quitarla.
-                    </RetosHeader>
+            <FlashMessage />
 
-                    <Link
-                        href="/retos/personas"
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Volver a personas
-                    </Link>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <TreeSwitch tree={tree} baseUrl={url} />
+                <p className="text-sm text-muted-foreground">
+                    Domina {dominated} de {nodes.length}
+                </p>
+            </div>
 
-                    <FlashMessage />
-
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <TreeSwitch tree={tree} baseUrl={url} />
-                        <p className="text-sm text-muted-foreground">
-                            Domina {dominated} de {nodes.length}
-                        </p>
-                    </div>
-
-                    <SkillTree
-                        nodes={nodes}
-                        selectedId={selectedId}
-                        onSelect={(n) => setSelectedId(n.id)}
-                    />
-                    <TreeLegend />
-                </div>
-            </main>
-
-            <Footer />
+            <SkillTree
+                nodes={nodes}
+                selectedId={selectedId}
+                onSelect={(n) => setSelectedId(n.id)}
+            />
+            <TreeLegend />
 
             <Dialog
                 open={node !== null}
@@ -149,9 +134,7 @@ export default function PersonaPage({
                                 <div>
                                     <StatusChip node={node} />
                                 </div>
-                                <DialogTitle className="font-serif text-2xl">
-                                    {node.name}
-                                </DialogTitle>
+                                <DialogTitle>{node.name}</DialogTitle>
                                 <DialogDescription>
                                     {person.apodo ?? person.name}
                                 </DialogDescription>
@@ -196,6 +179,6 @@ export default function PersonaPage({
                     )}
                 </DialogContent>
             </Dialog>
-        </div>
+        </RetosLayout>
     );
 }

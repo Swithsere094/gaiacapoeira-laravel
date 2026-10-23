@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DayEventList } from '@/components/calendar/day-event-list';
+import { DayEventList } from '@/components/eventos/day-event-list';
 import type { CalendarData, CalendarEvent } from '@/lib/calendar';
 import {
     WEEKDAYS,
@@ -41,7 +41,7 @@ export function MonthView({
 
     return (
         <div>
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="overflow-hidden panel">
                 <div className="grid grid-cols-7 border-b border-border bg-secondary/40">
                     {WEEKDAYS.map((d) => (
                         <div

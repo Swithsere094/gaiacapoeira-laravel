@@ -1,5 +1,5 @@
-import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
 // Carrusel horizontal con scroll-snap nativo (sin animation-timeline: el

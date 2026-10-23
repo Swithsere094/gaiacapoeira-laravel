@@ -1,11 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Trophy } from 'lucide-react';
 import { useState } from 'react';
-import { CalendarNav } from '@/components/calendar/calendar-nav';
-import { EventDetailDialog } from '@/components/calendar/event-detail-dialog';
-import { MonthView } from '@/components/calendar/month-view';
+import { CalendarNav } from '@/components/eventos/calendar-nav';
+import { EventDetailDialog } from '@/components/eventos/event-detail-dialog';
+import { MonthView } from '@/components/eventos/month-view';
 import { Footer } from '@/components/footer';
-import { Hero } from '@/components/hero';
+import { Hero } from '@/components/home/hero';
 import { Navigation } from '@/components/navigation';
 import { ActiveWeekCard } from '@/components/retos/active-week-card';
 import { CelebrationDialog } from '@/components/retos/celebration-dialog';
@@ -26,7 +26,7 @@ interface Props {
     } | null;
 }
 
-export default function Home({ calendar, retos }: Props) {
+export default function HomePage({ calendar, retos }: Props) {
     const [selected, setSelected] = useState<{
         event: CalendarEvent;
         date: string;
@@ -34,7 +34,7 @@ export default function Home({ calendar, retos }: Props) {
 
     return (
         <main className="min-h-screen">
-            <Head title="Repositorio del Grupo" />
+            <Head title="Repositorio del grupo" />
             <Navigation />
             <Hero />
 

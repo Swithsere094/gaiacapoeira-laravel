@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
 import { List } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { MANUAL_SECTIONS } from '@/lib/constants/manual-sections';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -9,6 +7,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { MANUAL_SECTIONS } from '@/lib/constants/manual-sections';
+import { cn } from '@/lib/utils';
 
 function jumpTo(id: string) {
     document

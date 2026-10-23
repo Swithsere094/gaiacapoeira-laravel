@@ -1,7 +1,9 @@
+import { Filter, Footprints } from 'lucide-react';
 import { useState } from 'react';
-import { SectionLayout } from '@/components/section-layout';
-import { MovementCard } from '@/components/movement-card';
-import { Search, Filter } from 'lucide-react';
+import { MovementCard } from '@/components/movimientos/movement-card';
+import { PageHeader } from '@/components/page-header';
+import { PageLayout } from '@/components/page-layout';
+import { SearchInput } from '@/components/search-input';
 
 const categories = [
     { id: 'all', label: 'Todos' },
@@ -200,22 +202,25 @@ export default function MovimientosPage() {
     });
 
     return (
-        <SectionLayout
+        <PageLayout
             title="Movimientos"
-            description="Biblioteca completa de movimientos de capoeira. Aprende desde los fundamentos hasta técnicas avanzadas."
+            header={
+                <PageHeader
+                    icon={Footprints}
+                    title="Movimientos"
+                    description="Biblioteca completa de movimientos de capoeira. Aprende desde los fundamentos hasta técnicas avanzadas."
+                />
+            }
         >
             {/* Search and Filters */}
             <div className="mb-8 flex flex-col gap-4 sm:flex-row">
-                <div className="relative flex-1">
-                    <Search className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Buscar movimientos..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full rounded-lg border border-border bg-card py-3 pr-4 pl-10 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                    />
-                </div>
+                <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    label="Buscar movimientos"
+                    placeholder="Buscar movimientos..."
+                    className="flex-1"
+                />
                 <div className="flex items-center gap-2">
                     <Filter className="h-5 w-5 text-muted-foreground" />
                     <div className="flex flex-wrap gap-2">
@@ -257,6 +262,6 @@ export default function MovimientosPage() {
                     </p>
                 </div>
             )}
-        </SectionLayout>
+        </PageLayout>
     );
 }

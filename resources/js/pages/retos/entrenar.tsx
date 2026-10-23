@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
     CheckCircle2,
@@ -11,10 +11,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useConfirm } from '@/components/confirm-dialog';
-import { Footer } from '@/components/footer';
-import { Navigation } from '@/components/navigation';
+import { FlashMessage } from '@/components/flash-message';
+import { PageLayout } from '@/components/page-layout';
 import { retoContext } from '@/components/retos/active-week-card';
-import { FlashMessage } from '@/components/retos/flash-message';
 import { ProgressRing } from '@/components/retos/progress-ring';
 import { Button } from '@/components/ui/button';
 import { WEEK_DAYS, formatClock, formatMinutes, weekStatus } from '@/lib/retos';
@@ -141,7 +140,7 @@ function useSessionClock(session: Session | null, serverNow: string) {
  * Inertia reutiliza la página al volver del POST que inicia la sesión: con
  * la `key` se arma de cero (reloj incluido) cada vez que cambia la sesión.
  */
-export default function Entrenar(props: Props) {
+export default function EntrenarPage(props: Props) {
     return <Training key={props.session?.id ?? 'sin-sesion'} {...props} />;
 }
 
@@ -238,192 +237,178 @@ function Training({ reto, semana, session, server_now, demo }: Props) {
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            <Head title={`Entrenar: ${reto.title}`} />
-            <Navigation />
+        // Vista de concentración: sin franja de encabezado, con su "Volver".
+        <PageLayout
+            title={`Entrenar: ${reto.title}`}
+            width="narrow"
+            className="space-y-6"
+        >
+            <button
+                type="button"
+                onClick={() => void leave()}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+                <ArrowLeft className="h-4 w-4" />
+                {reto.kind === 'secreto' ? 'Volver al árbol' : 'Volver a retos'}
+            </button>
 
-            <main className="pt-24 pb-16">
-                <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    <button
-                        type="button"
-                        onClick={() => void leave()}
-                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        {reto.kind === 'secreto'
-                            ? 'Volver al árbol'
-                            : 'Volver a retos'}
-                    </button>
+            <div>
+                <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                    {retoContext(reto)}
+                </p>
+                <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">
+                    {reto.title}
+                </h1>
+                {semana && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Semana: día {Math.min(semana.day, WEEK_DAYS)} de{' '}
+                        {WEEK_DAYS} · {semana.days_done.length}{' '}
+                        {semana.days_done.length === 1
+                            ? 'día entrenado'
+                            : 'días entrenados'}{' '}
+                        · {weekStatus(semana.days_done.length)}
+                        {semana.trained_today &&
+                            ' · Hoy ya cuenta: entrenar otra vez no suma otro día.'}
+                    </p>
+                )}
+            </div>
 
-                    <div>
-                        <p className="text-xs font-medium tracking-wide text-primary uppercase">
-                            {retoContext(reto)}
+            <FlashMessage />
+
+            {!session && (
+                <div className="panel p-5">
+                    {reto.description && (
+                        <p className="text-muted-foreground">
+                            {reto.description}
                         </p>
-                        <h1 className="mt-1 font-serif text-3xl font-bold text-foreground">
-                            {reto.title}
-                        </h1>
-                        {semana && (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Semana: día {Math.min(semana.day, WEEK_DAYS)} de{' '}
-                                {WEEK_DAYS} · {semana.days_done.length}{' '}
-                                {semana.days_done.length === 1
-                                    ? 'día entrenado'
-                                    : 'días entrenados'}{' '}
-                                · {weekStatus(semana.days_done.length)}
-                                {semana.trained_today &&
-                                    ' · Hoy ya cuenta: entrenar otra vez no suma otro día.'}
-                            </p>
+                    )}
+                    <StepList steps={reto.steps} current={-1} />
+                    <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <Button size="lg" className="gap-2" onClick={start}>
+                            <Play className="h-5 w-5" />
+                            Iniciar entrenamiento ·{' '}
+                            {formatMinutes(reto.minutes)}
+                        </Button>
+                        {demo?.fast && (
+                            <span className="flex items-center gap-1.5 text-sm text-primary">
+                                <FastForward className="h-4 w-4" />
+                                Cronómetro rápido: dura 30 veces menos
+                            </span>
                         )}
                     </div>
+                </div>
+            )}
 
-                    <FlashMessage />
-
-                    {!session && (
-                        <div className="rounded-xl border border-border bg-card p-5">
-                            {reto.description && (
-                                <p className="text-muted-foreground">
-                                    {reto.description}
-                                </p>
-                            )}
-                            <StepList steps={reto.steps} current={-1} />
-                            <div className="mt-5 flex flex-wrap items-center gap-3">
-                                <Button
-                                    size="lg"
-                                    className="gap-2"
-                                    onClick={start}
+            {session && !done && (
+                <>
+                    <div className="rounded-xl border border-primary/40 bg-card p-6 text-center">
+                        {/* Un tramo por paso (largo según su duración). */}
+                        <div className="mb-4 flex gap-1" aria-hidden="true">
+                            {steps.map((s, i) => (
+                                <span
+                                    key={i}
+                                    className="h-1.5 overflow-hidden rounded-full bg-secondary"
+                                    style={{
+                                        flexGrow: s.seconds,
+                                        flexBasis: 0,
+                                    }}
                                 >
-                                    <Play className="h-5 w-5" />
-                                    Iniciar entrenamiento ·{' '}
-                                    {formatMinutes(reto.minutes)}
-                                </Button>
-                                {demo?.fast && (
-                                    <span className="flex items-center gap-1.5 text-sm text-primary">
-                                        <FastForward className="h-4 w-4" />
-                                        Cronómetro rápido: dura 30 veces menos
-                                    </span>
-                                )}
-                            </div>
+                                    <span
+                                        className="block h-full bg-primary"
+                                        style={{
+                                            width:
+                                                i < index
+                                                    ? '100%'
+                                                    : i === index
+                                                      ? `${(1 - stepLeft / step.seconds) * 100}%`
+                                                      : '0%',
+                                        }}
+                                    />
+                                </span>
+                            ))}
                         </div>
-                    )}
-
-                    {session && !done && (
-                        <>
-                            <div className="rounded-xl border border-primary/40 bg-card p-6 text-center">
-                                {/* Un tramo por paso (largo según su duración). */}
-                                <div
-                                    className="mb-4 flex gap-1"
-                                    aria-hidden="true"
+                        <p className="text-sm text-muted-foreground">
+                            Paso {index + 1} de {steps.length}
+                        </p>
+                        <h2 className="mt-2 font-serif text-2xl font-bold text-foreground">
+                            {step.title}
+                        </h2>
+                        <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
+                            {step.detail}
+                        </p>
+                        <div className="mt-6 flex justify-center">
+                            <ProgressRing
+                                value={1 - stepLeft / step.seconds}
+                                size={208}
+                                stroke={10}
+                            >
+                                <span
+                                    className={cn(
+                                        'font-mono text-5xl font-bold tabular-nums',
+                                        paused
+                                            ? 'text-muted-foreground'
+                                            : 'text-primary',
+                                    )}
+                                    aria-live="off"
                                 >
-                                    {steps.map((s, i) => (
-                                        <span
-                                            key={i}
-                                            className="h-1.5 overflow-hidden rounded-full bg-secondary"
-                                            style={{
-                                                flexGrow: s.seconds,
-                                                flexBasis: 0,
-                                            }}
-                                        >
-                                            <span
-                                                className="block h-full bg-primary"
-                                                style={{
-                                                    width:
-                                                        i < index
-                                                            ? '100%'
-                                                            : i === index
-                                                              ? `${(1 - stepLeft / step.seconds) * 100}%`
-                                                              : '0%',
-                                                }}
-                                            />
-                                        </span>
-                                    ))}
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    Paso {index + 1} de {steps.length}
-                                </p>
-                                <h2 className="mt-2 font-serif text-2xl font-bold text-foreground">
-                                    {step.title}
-                                </h2>
-                                <p className="mx-auto mt-2 max-w-xl text-muted-foreground">
-                                    {step.detail}
-                                </p>
-                                <div className="mt-6 flex justify-center">
-                                    <ProgressRing
-                                        value={1 - stepLeft / step.seconds}
-                                        size={208}
-                                        stroke={10}
-                                    >
-                                        <span
-                                            className={cn(
-                                                'font-mono text-5xl font-bold tabular-nums',
-                                                paused
-                                                    ? 'text-muted-foreground'
-                                                    : 'text-primary',
-                                            )}
-                                            aria-live="off"
-                                        >
-                                            {formatClock(stepLeft)}
-                                        </span>
-                                    </ProgressRing>
-                                </div>
-                                {index + 1 < steps.length && (
-                                    <p className="mt-4 text-sm text-muted-foreground">
-                                        Después: {steps[index + 1].title}
-                                    </p>
-                                )}
-                                <div className="mt-6 flex justify-center gap-3">
-                                    <Button
-                                        size="lg"
-                                        variant={paused ? 'default' : 'outline'}
-                                        className="gap-2"
-                                        onClick={togglePause}
-                                    >
-                                        {paused ? (
-                                            <>
-                                                <Play className="h-5 w-5" />
-                                                Reanudar
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Pause className="h-5 w-5" />
-                                                Pausar
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                                <p className="mt-4 text-xs text-muted-foreground">
-                                    Faltan {formatClock(total - elapsed)} en
-                                    total
-                                </p>
-                            </div>
-                            <div className="rounded-xl border border-border bg-card p-5">
-                                <StepList steps={steps} current={index} />
-                            </div>
-                        </>
-                    )}
-
-                    {done && (
-                        <div className="rounded-xl border border-primary/40 bg-card p-8 text-center">
-                            <Trophy className="mx-auto h-12 w-12 text-primary" />
-                            <h2 className="mt-3 font-serif text-2xl font-bold text-foreground">
-                                ¡Entrenamiento completo!
-                            </h2>
-                            {saving ? (
-                                <p className="mt-3 flex items-center justify-center gap-2 text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Guardando…
-                                </p>
-                            ) : (
-                                <Button className="mt-4" onClick={complete}>
-                                    Guardar entrenamiento
-                                </Button>
-                            )}
+                                    {formatClock(stepLeft)}
+                                </span>
+                            </ProgressRing>
                         </div>
+                        {index + 1 < steps.length && (
+                            <p className="mt-4 text-sm text-muted-foreground">
+                                Después: {steps[index + 1].title}
+                            </p>
+                        )}
+                        <div className="mt-6 flex justify-center gap-3">
+                            <Button
+                                size="lg"
+                                variant={paused ? 'default' : 'outline'}
+                                className="gap-2"
+                                onClick={togglePause}
+                            >
+                                {paused ? (
+                                    <>
+                                        <Play className="h-5 w-5" />
+                                        Reanudar
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pause className="h-5 w-5" />
+                                        Pausar
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                        <p className="mt-4 text-xs text-muted-foreground">
+                            Faltan {formatClock(total - elapsed)} en total
+                        </p>
+                    </div>
+                    <div className="panel p-5">
+                        <StepList steps={steps} current={index} />
+                    </div>
+                </>
+            )}
+
+            {done && (
+                <div className="rounded-xl border border-primary/40 bg-card p-8 text-center">
+                    <Trophy className="mx-auto h-12 w-12 text-primary" />
+                    <h2 className="mt-3 font-serif text-2xl font-bold text-foreground">
+                        ¡Entrenamiento completo!
+                    </h2>
+                    {saving ? (
+                        <p className="mt-3 flex items-center justify-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Guardando…
+                        </p>
+                    ) : (
+                        <Button className="mt-4" onClick={complete}>
+                            Guardar entrenamiento
+                        </Button>
                     )}
                 </div>
-            </main>
-
-            <Footer />
-        </div>
+            )}
+        </PageLayout>
     );
 }
 

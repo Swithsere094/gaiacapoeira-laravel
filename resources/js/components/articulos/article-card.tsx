@@ -34,7 +34,7 @@ export function ArticleCard({
     slug,
 }: ArticleCardProps) {
     return (
-        <article className="group rounded-xl bg-card p-6 transition-all hover:scale-[1.01] hover:shadow-xl">
+        <article className="group panel p-6 transition-all hover:scale-[1.01] hover:shadow-xl">
             <div className="mb-4 flex items-center gap-3">
                 <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${categoryColors[category] || 'bg-secondary text-secondary-foreground'}`}

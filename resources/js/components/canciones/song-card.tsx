@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
     Check,
     Play,
@@ -10,15 +9,17 @@ import {
     Share2,
     Star,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useConfirm } from '@/components/confirm-dialog';
-import { cn } from '@/lib/utils';
-import { toEmbedUrl } from '@/lib/utils/video-url';
+import { IconButton } from '@/components/icon-button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { toEmbedUrl } from '@/lib/video-url';
 
 export interface SongCardProps {
     id: string;
@@ -60,116 +61,9 @@ const typeColors: Record<string, string> = {
     samba: 'bg-chart-3/20 text-foreground',
 };
 
-function SongMeta({
-    type,
-    ritmos,
-    mestre,
-    nossa,
-}: {
-    type: string;
-    ritmos?: string[];
-    mestre?: string;
-    nossa?: boolean;
-}) {
-    return (
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-            {nossa && (
-                <span className="inline-flex items-center gap-1 rounded bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                    <Star aria-hidden="true" className="h-3 w-3 fill-current" />
-                    Nossa
-                </span>
-            )}
-            <span
-                className={cn(
-                    'inline-block rounded px-2 py-0.5 text-xs font-medium',
-                    typeColors[type] ??
-                        'bg-secondary text-secondary-foreground',
-                )}
-            >
-                {typeLabels[type] ?? type}
-            </span>
-            {ritmos?.map((r) => (
-                <span
-                    key={r}
-                    className="inline-block rounded bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
-                >
-                    {r}
-                </span>
-            ))}
-            {mestre && (
-                <span className="text-xs text-muted-foreground">{mestre}</span>
-            )}
-        </div>
-    );
-}
-
 /** Enlace directo a la canción: /canciones?cancion=<id> (ver canciones.tsx). */
 export function songShareUrl(id: string): string {
     return `${window.location.origin}/canciones?cancion=${encodeURIComponent(id)}`;
-}
-
-/**
- * Comparte el enlace de la canción: en el celular abre el menú de compartir
- * del sistema; donde no existe, copia el enlace y lo confirma en el botón.
- */
-function ShareButton({ id, title }: { id: string; title: string }) {
-    const { notify } = useConfirm();
-    const [copied, setCopied] = useState(false);
-
-    useEffect(() => {
-        if (!copied) return;
-        const timer = setTimeout(() => setCopied(false), 2000);
-
-        return () => clearTimeout(timer);
-    }, [copied]);
-
-    const share = async () => {
-        const url = songShareUrl(id);
-
-        // Solo en pantallas táctiles: en el computador (Chrome en Windows
-        // también tiene navigator.share) es más práctico copiar el enlace.
-        const touch = window.matchMedia('(pointer: coarse)').matches;
-
-        if (touch && navigator.share) {
-            try {
-                await navigator.share({ title, url });
-
-                return;
-            } catch (e) {
-                // La persona cerró el menú: no hay nada más que hacer.
-                if (e instanceof DOMException && e.name === 'AbortError') {
-                    return;
-                }
-            }
-        }
-
-        try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-        } catch {
-            await notify({
-                title: 'Copia este enlace',
-                description: url,
-            });
-        }
-    };
-
-    return (
-        <button
-            type="button"
-            onClick={share}
-            className="inline-flex shrink-0 items-center gap-2 self-start rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-            {copied ? (
-                <Check aria-hidden="true" className="h-4 w-4 text-primary" />
-            ) : (
-                <Share2 aria-hidden="true" className="h-4 w-4" />
-            )}
-            <span aria-live="polite">
-                {copied ? 'Enlace copiado' : 'Compartir'}
-            </span>
-        </button>
-    );
 }
 
 export function SongCard({
@@ -222,7 +116,7 @@ export function SongCard({
 
     return (
         <>
-            <article className="overflow-hidden rounded-xl bg-card">
+            <article className="overflow-hidden panel">
                 {/* Toda la tarjeta abre el modal. Editar/borrar son botones
             hermanos, no anidados: un <button> dentro de otro confunde a
             lectores de pantalla y rompe el orden de foco (ver auditoría de
@@ -271,24 +165,21 @@ export function SongCard({
                     {(onEdit || onDelete) && (
                         <div className="flex shrink-0 items-center gap-2 pr-6">
                             {onEdit && (
-                                <button
-                                    type="button"
+                                <IconButton
+                                    icon={Pencil}
+                                    label="Editar canción"
+                                    size="sm"
                                     onClick={onEdit}
-                                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                                    aria-label="Editar canción"
-                                >
-                                    <Pencil className="h-4 w-4" />
-                                </button>
+                                />
                             )}
                             {onDelete && (
-                                <button
-                                    type="button"
+                                <IconButton
+                                    icon={Trash2}
+                                    label="Eliminar canción"
+                                    tone="destructive"
+                                    size="sm"
                                     onClick={onDelete}
-                                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                                    aria-label="Eliminar canción"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
+                                />
                             )}
                         </div>
                     )}
@@ -309,9 +200,7 @@ export function SongCard({
                 >
                     <DialogHeader className="shrink-0 gap-3 border-b border-border p-6 pr-12 text-left sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                         <div className="min-w-0">
-                            <DialogTitle className="font-serif text-2xl font-bold">
-                                {title}
-                            </DialogTitle>
+                            <DialogTitle>{title}</DialogTitle>
                             <SongMeta
                                 type={type}
                                 ritmos={ritmos}
@@ -396,5 +285,112 @@ export function SongCard({
                 </DialogContent>
             </Dialog>
         </>
+    );
+}
+
+function SongMeta({
+    type,
+    ritmos,
+    mestre,
+    nossa,
+}: {
+    type: string;
+    ritmos?: string[];
+    mestre?: string;
+    nossa?: boolean;
+}) {
+    return (
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+            {nossa && (
+                <span className="inline-flex items-center gap-1 rounded bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                    <Star aria-hidden="true" className="h-3 w-3 fill-current" />
+                    Nossa
+                </span>
+            )}
+            <span
+                className={cn(
+                    'inline-block rounded px-2 py-0.5 text-xs font-medium',
+                    typeColors[type] ??
+                        'bg-secondary text-secondary-foreground',
+                )}
+            >
+                {typeLabels[type] ?? type}
+            </span>
+            {ritmos?.map((r) => (
+                <span
+                    key={r}
+                    className="inline-block rounded bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                >
+                    {r}
+                </span>
+            ))}
+            {mestre && (
+                <span className="text-xs text-muted-foreground">{mestre}</span>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Comparte el enlace de la canción: en el celular abre el menú de compartir
+ * del sistema; donde no existe, copia el enlace y lo confirma en el botón.
+ */
+function ShareButton({ id, title }: { id: string; title: string }) {
+    const { notify } = useConfirm();
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        if (!copied) return;
+        const timer = setTimeout(() => setCopied(false), 2000);
+
+        return () => clearTimeout(timer);
+    }, [copied]);
+
+    const share = async () => {
+        const url = songShareUrl(id);
+
+        // Solo en pantallas táctiles: en el computador (Chrome en Windows
+        // también tiene navigator.share) es más práctico copiar el enlace.
+        const touch = window.matchMedia('(pointer: coarse)').matches;
+
+        if (touch && navigator.share) {
+            try {
+                await navigator.share({ title, url });
+
+                return;
+            } catch (e) {
+                // La persona cerró el menú: no hay nada más que hacer.
+                if (e instanceof DOMException && e.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+        } catch {
+            await notify({
+                title: 'Copia este enlace',
+                description: url,
+            });
+        }
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={share}
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-md border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+            {copied ? (
+                <Check aria-hidden="true" className="h-4 w-4 text-primary" />
+            ) : (
+                <Share2 aria-hidden="true" className="h-4 w-4" />
+            )}
+            <span aria-live="polite">
+                {copied ? 'Enlace copiado' : 'Compartir'}
+            </span>
+        </button>
     );
 }

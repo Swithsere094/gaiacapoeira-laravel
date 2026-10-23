@@ -36,7 +36,7 @@ export function ActiveWeekCard({
     const days = semana.days_done.length;
 
     return (
-        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-col gap-4 panel p-5">
             <div className="flex items-start gap-3">
                 <IconBadge icon={retoIcon(semana.reto)} />
                 <div className="min-w-0 flex-1">

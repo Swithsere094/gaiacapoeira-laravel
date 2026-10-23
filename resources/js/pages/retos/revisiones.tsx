@@ -1,12 +1,12 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Link, router, useForm } from '@inertiajs/react';
+import { CheckCircle2, Clock, XCircle, ClipboardCheck } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useConfirm } from '@/components/confirm-dialog';
-import { Footer } from '@/components/footer';
-import { Navigation } from '@/components/navigation';
-import { FlashMessage } from '@/components/retos/flash-message';
-import { RetosHeader } from '@/components/retos/retos-header';
+import { EmptyState } from '@/components/empty-state';
+import { FlashMessage } from '@/components/flash-message';
+import { SectionTitle } from '@/components/headings';
+import { RetosLayout } from '@/components/retos/retos-layout';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -70,144 +70,125 @@ export default function RevisionesPage({
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            <Head title="Revisiones" />
-            <Navigation />
+        <RetosLayout
+            title="Revisiones"
+            width="narrow"
+            pendingReviews={pending_reviews}
+            className="space-y-8"
+            description={
+                <>
+                    Pedidos de revisión del reto secreto. Al aprobar, la
+                    habilidad queda dominada; al rechazar, la persona ve tu
+                    comentario y puede volver a pedirla.
+                </>
+            }
+        >
+            <FlashMessage />
 
-            <main className="pt-24 pb-16">
-                <div className="mx-auto max-w-3xl space-y-8 px-4 sm:px-6 lg:px-8">
-                    <RetosHeader
-                        title="Revisiones"
-                        pendingReviews={pending_reviews}
-                    >
-                        Pedidos de revisión del reto secreto. Al aprobar, la
-                        habilidad queda dominada; al rechazar, la persona ve tu
-                        comentario y puede volver a pedirla.
-                    </RetosHeader>
-
-                    <FlashMessage />
-
-                    <section className="space-y-3">
-                        <h2 className="font-serif text-2xl font-bold text-foreground">
-                            Pendientes
-                        </h2>
-                        {pending.length === 0 ? (
-                            <p className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                                No hay revisiones pendientes.
-                            </p>
-                        ) : (
-                            <ul className="space-y-3">
-                                {pending.map((r) => (
-                                    <li
-                                        key={r.id}
-                                        className="rounded-xl border border-border bg-card p-4"
+            <section className="space-y-3">
+                <SectionTitle className="mb-0">Pendientes</SectionTitle>
+                {pending.length === 0 ? (
+                    <EmptyState icon={ClipboardCheck}>
+                        No hay revisiones pendientes.
+                    </EmptyState>
+                ) : (
+                    <ul className="space-y-3">
+                        {pending.map((r) => (
+                            <li key={r.id} className="panel p-4">
+                                <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                                    {TREE_LABELS[r.habilidad.tree]}
+                                </p>
+                                <p className="mt-1 font-serif text-lg font-semibold text-foreground">
+                                    {r.habilidad.name}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {who(r)} · pedida el{' '}
+                                    {shortDate(r.requested_on)} · completó el
+                                    reto secreto{' '}
+                                    {r.sessions === 1
+                                        ? '1 vez'
+                                        : `${r.sessions} veces`}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Button
+                                        size="sm"
+                                        className="gap-1.5"
+                                        onClick={() => void approve(r)}
                                     >
-                                        <p className="text-xs font-medium tracking-wide text-primary uppercase">
-                                            {TREE_LABELS[r.habilidad.tree]}
-                                        </p>
-                                        <p className="mt-1 font-serif text-lg font-semibold text-foreground">
-                                            {r.habilidad.name}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {who(r)} · pedida el{' '}
-                                            {shortDate(r.requested_on)} ·
-                                            completó el reto secreto{' '}
-                                            {r.sessions === 1
-                                                ? '1 vez'
-                                                : `${r.sessions} veces`}
-                                        </p>
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            <Button
-                                                size="sm"
-                                                className="gap-1.5"
-                                                onClick={() => void approve(r)}
-                                            >
-                                                <CheckCircle2 className="h-4 w-4" />
-                                                Aprobar
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="gap-1.5"
-                                                onClick={() => setRejecting(r)}
-                                            >
-                                                <XCircle className="h-4 w-4" />
-                                                Rechazar
-                                            </Button>
-                                            <Button
-                                                asChild
-                                                size="sm"
-                                                variant="ghost"
-                                            >
-                                                <Link
-                                                    href={`/retos/personas/${r.user.id}?arbol=${r.habilidad.tree}`}
-                                                >
-                                                    Ver su árbol
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </section>
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Aprobar
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1.5"
+                                        onClick={() => setRejecting(r)}
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Rechazar
+                                    </Button>
+                                    <Button asChild size="sm" variant="ghost">
+                                        <Link
+                                            href={`/retos/personas/${r.user.id}?arbol=${r.habilidad.tree}`}
+                                        >
+                                            Ver su árbol
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
 
-                    {resolved.length > 0 && (
-                        <section className="space-y-3">
-                            <h2 className="font-serif text-2xl font-bold text-foreground">
-                                Respondidas
-                            </h2>
-                            <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                                {resolved.map((r) => (
-                                    <li key={r.id} className="flex gap-3 p-4">
-                                        {r.status === 'aprobada' ? (
-                                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                                        ) : (
-                                            <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-                                        )}
-                                        <div className="min-w-0">
-                                            <p className="font-medium text-foreground">
-                                                {r.habilidad.name} · {who(r)}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {r.status === 'aprobada'
-                                                    ? 'Aprobada'
-                                                    : 'Rechazada'}
-                                                {r.reviewer &&
-                                                    ` por ${r.reviewer}`}
-                                                {r.reviewed_on &&
-                                                    ` el ${shortDate(r.reviewed_on)}`}
-                                            </p>
-                                            {r.comment && (
-                                                <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">
-                                                    «{r.comment}»
-                                                </p>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
+            {resolved.length > 0 && (
+                <section className="space-y-3">
+                    <SectionTitle className="mb-0">Respondidas</SectionTitle>
+                    <ul className="divide-y divide-border panel">
+                        {resolved.map((r) => (
+                            <li key={r.id} className="flex gap-3 p-4">
+                                {r.status === 'aprobada' ? (
+                                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                                ) : (
+                                    <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                                )}
+                                <div className="min-w-0">
+                                    <p className="font-medium text-foreground">
+                                        {r.habilidad.name} · {who(r)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {r.status === 'aprobada'
+                                            ? 'Aprobada'
+                                            : 'Rechazada'}
+                                        {r.reviewer && ` por ${r.reviewer}`}
+                                        {r.reviewed_on &&
+                                            ` el ${shortDate(r.reviewed_on)}`}
+                                    </p>
+                                    {r.comment && (
+                                        <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">
+                                            «{r.comment}»
+                                        </p>
+                                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
-                    {isAdmin && pending.length > 0 && (
-                        <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            Como admin, también puedes responder tus propios
-                            pedidos.
-                        </p>
-                    )}
-                </div>
-            </main>
-
-            <Footer />
+            {isAdmin && pending.length > 0 && (
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    Como admin, también puedes responder tus propios pedidos.
+                </p>
+            )}
 
             <RejectDialog
                 key={rejecting?.id ?? 'ninguna'}
                 review={rejecting}
                 onClose={() => setRejecting(null)}
             />
-        </div>
+        </RetosLayout>
     );
 }
 

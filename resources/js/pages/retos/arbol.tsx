@@ -1,12 +1,9 @@
-import { Head } from '@inertiajs/react';
 import { useState } from 'react';
-import { Footer } from '@/components/footer';
-import { Navigation } from '@/components/navigation';
+import { FlashMessage } from '@/components/flash-message';
 import { CelebrationDialog } from '@/components/retos/celebration-dialog';
 import { DemoBar } from '@/components/retos/demo-bar';
-import { FlashMessage } from '@/components/retos/flash-message';
 import { TreeProgressRings } from '@/components/retos/progress-ring';
-import { RetosHeader } from '@/components/retos/retos-header';
+import { RetosLayout } from '@/components/retos/retos-layout';
 import { SkillDialog } from '@/components/retos/skill-dialog';
 import { SkillTree, TreeLegend } from '@/components/retos/skill-tree';
 import { TreeSwitch } from '@/components/retos/tree-switch';
@@ -47,39 +44,33 @@ export default function ArbolPage({
         : [];
 
     return (
-        <div className="min-h-screen bg-background">
-            <Head title="Árbol de habilidades" />
-            <Navigation />
+        <RetosLayout
+            title="Árbol de habilidades"
+            width="wide"
+            pendingReviews={pending_reviews}
+            className="space-y-6"
+            description={
+                <>
+                    Cada habilidad se desbloquea al dominar las que la preceden.
+                    Toca una para ver su reto, su reto secreto y pedir la
+                    revisión.
+                </>
+            }
+        >
+            <TreeProgressRings progress={progress} linked={false} />
 
-            <main className="pt-24 pb-16">
-                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    <RetosHeader
-                        title="Árbol de habilidades"
-                        pendingReviews={pending_reviews}
-                    >
-                        Cada habilidad se desbloquea al dominar las que la
-                        preceden. Toca una para ver su reto, su reto secreto y
-                        pedir la revisión.
-                    </RetosHeader>
+            {demo && <DemoBar demo={demo} />}
+            {!node && <FlashMessage />}
 
-                    <TreeProgressRings progress={progress} linked={false} />
+            <TreeSwitch tree={tree} baseUrl="/retos/arbol" />
 
-                    {demo && <DemoBar demo={demo} />}
-                    {!node && <FlashMessage />}
-
-                    <TreeSwitch tree={tree} baseUrl="/retos/arbol" />
-
-                    <SkillTree
-                        nodes={nodes}
-                        selectedId={selectedId}
-                        onSelect={(n) => setSelectedId(n.id)}
-                        drawFrom={drawFrom}
-                    />
-                    <TreeLegend />
-                </div>
-            </main>
-
-            <Footer />
+            <SkillTree
+                nodes={nodes}
+                selectedId={selectedId}
+                onSelect={(n) => setSelectedId(n.id)}
+                drawFrom={drawFrom}
+            />
+            <TreeLegend />
 
             <CelebrationDialog
                 items={celebrations}
@@ -92,6 +83,6 @@ export default function ArbolPage({
                 onSelect={(n) => setSelectedId(n.id)}
                 onClose={() => setSelectedId(null)}
             />
-        </div>
+        </RetosLayout>
     );
 }

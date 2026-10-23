@@ -17,22 +17,6 @@ import { MEDAL_STYLE, WEEK_DAYS } from '@/lib/retos';
 const treeUrl = (s: SkillRef) =>
     `/retos/arbol?arbol=${s.tree}&habilidad=${s.id}`;
 
-/** Rayos de luz girando detrás de lo que se celebra. */
-function Rays() {
-    return (
-        <span
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-1/2 -mt-36 -ml-36 h-72 w-72 animate-rays rounded-full opacity-25"
-            style={{
-                background:
-                    'repeating-conic-gradient(var(--primary) 0deg 10deg, transparent 10deg 30deg)',
-                maskImage:
-                    'radial-gradient(circle, black 30%, transparent 70%)',
-            }}
-        />
-    );
-}
-
 /**
  * Pantalla de celebración de los logros nuevos (medalla, reto secreto
  * revelado, revisión aprobada). Si hay varios, van uno detrás de otro.
@@ -108,7 +92,7 @@ function MedalView({
                 </span>
             </div>
             <div>
-                <DialogTitle className="font-serif text-2xl">
+                <DialogTitle className="text-2xl">
                     ¡Medalla de {MEDAL_STYLE[item.medal].label.toLowerCase()}!
                 </DialogTitle>
                 <DialogDescription className="mt-1">
@@ -163,7 +147,7 @@ function ApprovedView({
                 </span>
             </div>
             <div>
-                <DialogTitle className="font-serif text-2xl">
+                <DialogTitle className="text-2xl">
                     ¡Dominas {item.habilidad.name}!
                 </DialogTitle>
                 <DialogDescription className="mt-1">
@@ -203,5 +187,21 @@ function ApprovedView({
                 <Link href={treeUrl(item.habilidad)}>Ver en el árbol</Link>
             </Button>
         </>
+    );
+}
+
+/** Rayos de luz girando detrás de lo que se celebra. */
+function Rays() {
+    return (
+        <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-1/2 -mt-36 -ml-36 h-72 w-72 animate-rays rounded-full opacity-25"
+            style={{
+                background:
+                    'repeating-conic-gradient(var(--primary) 0deg 10deg, transparent 10deg 30deg)',
+                maskImage:
+                    'radial-gradient(circle, black 30%, transparent 70%)',
+            }}
+        />
     );
 }

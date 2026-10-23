@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Download } from 'lucide-react';
-import { Navigation } from '@/components/navigation';
 import { Footer } from '@/components/footer';
+import { Navigation } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
 import { CORDAS, getCordaSrc, type CordaGroup } from '@/lib/constants/cordas';
 
@@ -37,7 +37,7 @@ const SECTIONS: { group: CordaGroup; title: string }[] = [
 export default function CordasPage() {
     return (
         <main className="min-h-screen">
-            <Head title="Sistema de Cordas" />
+            <Head title="Sistema de cordas" />
             <div className="print:hidden">
                 <Navigation />
             </div>
@@ -54,7 +54,7 @@ export default function CordasPage() {
                                 Volver a Política
                             </Link>
                             <h1 className="mb-4 font-serif text-4xl font-bold text-foreground md:text-5xl print:text-black">
-                                Sistema de Cordas
+                                Sistema de cordas
                             </h1>
                             <p className="max-w-2xl text-xl text-muted-foreground print:text-black">
                                 Orden de graduación del grupo, de batizado a

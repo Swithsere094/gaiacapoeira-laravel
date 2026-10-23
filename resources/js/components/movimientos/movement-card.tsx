@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Play, X, ChevronRight, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface MovementCardProps {
@@ -39,7 +39,7 @@ export function MovementCard({
     return (
         <>
             <article
-                className="group cursor-pointer overflow-hidden rounded-xl bg-card transition-all hover:scale-[1.02] hover:shadow-xl"
+                className="group cursor-pointer overflow-hidden panel transition-all hover:scale-[1.02] hover:shadow-xl"
                 onClick={() => setIsModalOpen(true)}
             >
                 {/* Video Preview */}

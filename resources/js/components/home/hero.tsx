@@ -42,7 +42,7 @@ export function Hero() {
                     <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
                         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/20 px-4 py-2 text-primary">
                             <span className="text-sm font-medium">
-                                Repositorio Digital
+                                Repositorio digital
                             </span>
                         </div>
                         <h1 className="mb-6 font-serif text-5xl font-bold text-balance text-foreground md:text-7xl">
