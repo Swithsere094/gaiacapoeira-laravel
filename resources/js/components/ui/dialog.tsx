@@ -109,7 +109,9 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lg leading-none font-semibold', className)}
+      // Mismo título en todas las ventanas del sitio (las celebraciones de
+      // retos lo agrandan a propósito).
+      className={cn('font-serif text-xl leading-tight font-semibold', className)}
       {...props}
     />
   )

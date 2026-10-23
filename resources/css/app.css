@@ -157,6 +157,14 @@
     }
 }
 
+/* Tarjeta del sitio (decisión 2026-10-22: con borde): esquinas, borde y
+   fondo. El relleno y el layout van aparte (ej. `panel p-5 flex gap-4`).
+   Una clase en vez de un componente para poder usarla en div, form, ul, li,
+   article… */
+@utility panel {
+    @apply rounded-xl border border-border bg-card;
+}
+
 @utility glow-breathe {
     animation: retos-breathe 3s ease-in-out infinite;
 }
