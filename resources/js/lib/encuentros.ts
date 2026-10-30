@@ -30,6 +30,27 @@ export function formatRange(
         : formatDate(start, 'long', intl);
 }
 
+/**
+ * Vista previa de la dirección que arma el servidor desde el nombre
+ * (`Str::slug`): sin tildes ni caracteres raros, en minúsculas y con
+ * guiones. Si ya existe, el servidor le agrega un número.
+ */
+export function slugDelNombre(nombre: string): string {
+    return nombre
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ß/g, 'ss')
+        .replace(/º/g, 'o')
+        .replace(/ª/g, 'a')
+        .replace(/æ/gi, 'ae')
+        .replace(/ø/gi, 'o')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 58)
+        .replace(/-+$/, '');
+}
+
 /** Días del encuentro (Y-m-d), del inicio al fin. Máximo 60 por las dudas. */
 export function diasDelEncuentro(start: string, end: string | null): string[] {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) {

@@ -315,13 +315,14 @@ class EncuentroController extends Controller
      */
     private function validated(Request $request, ?Encuentro $encuentro): array
     {
+        $slugLocked = $encuentro !== null && $encuentro->subdominio !== 'ninguno';
+
+        // La dirección no se escribe: sale siempre del nombre (sin tildes ni
+        // caracteres raros). Una vez creado el subdominio ya no cambia.
         $request->merge([
             'nombre' => trim((string) $request->input('nombre')),
-            // Sin slug escrito, sale del nombre ("Batizado 2027" → batizado-2027).
-            'slug' => Str::slug((string) ($request->input('slug') ?: $request->input('nombre'))),
+            'slug' => $slugLocked ? $encuentro->slug : $this->slugDisponible((string) $request->input('nombre'), $encuentro),
         ]);
-
-        $slugLocked = $encuentro !== null && $encuentro->subdominio !== 'ninguno';
 
         /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, mensaje_final?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed} $data */
         $data = $request->validate([
@@ -373,12 +374,8 @@ class EncuentroController extends Controller
             ...$this->reglasTraduccion('invitados.*.traducciones', ['bio' => 1500]),
         ], [
             'nombre.required' => 'El nombre del encuentro es obligatorio',
-            'slug.required' => 'La dirección necesita letras o números',
-            'slug.regex' => 'La dirección solo puede tener a-z, 0-9 y guiones',
-            'slug.min' => 'La dirección es muy corta (mínimo 3 caracteres)',
-            'slug.max' => 'La dirección es muy larga (máximo 63 caracteres)',
-            'slug.not_in' => 'Esa dirección está reservada',
-            'slug.unique' => 'Ya hay un encuentro con esa dirección',
+            'slug.required' => 'El nombre necesita letras o números para armar la dirección de la página',
+            'slug.min' => 'El nombre es muy corto para armar la dirección (mínimo 3 letras o números)',
             'starts_on.required' => 'La fecha de inicio es obligatoria',
             'ends_on.after_or_equal' => 'La fecha de fin no puede ser antes del inicio',
             'mapa_url.url' => 'El enlace del mapa tiene que empezar con https://',
@@ -471,6 +468,31 @@ class EncuentroController extends Controller
         }
 
         $encuentro->precios()->whereNotIn('id', $keep)->delete();
+    }
+
+    /**
+     * Dirección a partir del nombre: "Batizado São João 2027" →
+     * batizado-sao-joao-2027. Si ya la usa otro encuentro o está reservada,
+     * le agrega un número (batizado-2027-2…).
+     */
+    private function slugDisponible(string $nombre, ?Encuentro $actual): string
+    {
+        // Lugar para el sufijo dentro de los 63 caracteres de un subdominio.
+        // Signos como / o : separan palabras ("Ginga/Axé" → ginga-axe, no gingaaxe).
+        $base = trim(substr(Str::slug((string) preg_replace('/[^\pL\pN]+/u', ' ', $nombre)), 0, 58), '-');
+        if ($base === '') {
+            return '';
+        }
+
+        $ocupada = fn (string $slug) => in_array($slug, Encuentro::RESERVADOS, true)
+            || Encuentro::where('slug', $slug)->when($actual, fn ($q) => $q->whereKeyNot($actual->id))->exists();
+
+        $slug = $base;
+        for ($n = 2; $ocupada($slug); $n++) {
+            $slug = "{$base}-{$n}";
+        }
+
+        return $slug;
     }
 
     /**

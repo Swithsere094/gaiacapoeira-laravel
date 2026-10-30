@@ -106,14 +106,44 @@ class EncuentrosTest extends TestCase
         $this->assertSame(60000, $encuentro->precios[1]->valor);
     }
 
-    public function test_direccion_reservada_o_repetida(): void
+    public function test_la_direccion_sale_del_nombre(): void
+    {
+        $this->actingAsRole('admin');
+
+        // Lo que se escriba como dirección se ignora.
+        $this->post('/encuentros', $this->datos(['nombre' => 'Batizado São João & Troca de Cordas!', 'slug' => 'otra-cosa']));
+        $this->assertSame('batizado-sao-joao-troca-de-cordas', Encuentro::latest()->firstOrFail()->slug);
+        $this->post('/encuentros', $this->datos(['nombre' => 'Roda: Ginga/Axé — Nº 3']));
+        $this->assertSame('roda-ginga-axe-no-3', Encuentro::where('nombre', 'Roda: Ginga/Axé — Nº 3')->value('slug'));
+
+        $this->post('/encuentros', $this->datos(['nombre' => '¡¡ !!']))->assertSessionHasErrors('slug');
+        $this->post('/encuentros', $this->datos(['nombre' => 'Aú']))->assertSessionHasErrors('slug');
+    }
+
+    public function test_direccion_repetida_o_reservada_lleva_numero(): void
     {
         $this->actingAsRole('admin');
         Encuentro::factory()->create(['slug' => 'batizado-2027']);
 
-        $this->post('/encuentros', $this->datos())->assertSessionHasErrors(['slug' => 'Ya hay un encuentro con esa dirección']);
-        $this->post('/encuentros', $this->datos(['slug' => 'www']))->assertSessionHasErrors('slug');
-        $this->assertDatabaseCount('encuentros', 1);
+        $this->post('/encuentros', $this->datos())->assertSessionHasNoErrors();
+        $this->post('/encuentros', $this->datos())->assertSessionHasNoErrors();
+        $this->post('/encuentros', $this->datos(['nombre' => 'WWW']))->assertSessionHasNoErrors();
+
+        $this->assertSame(['batizado-2027', 'batizado-2027-2', 'batizado-2027-3', 'www-2'], Encuentro::orderBy('created_at')->orderBy('slug')->pluck('slug')->sort()->values()->all());
+    }
+
+    public function test_renombrar_un_borrador_cambia_la_direccion(): void
+    {
+        $this->actingAsRole('admin');
+        $this->post('/encuentros', $this->datos());
+        $encuentro = Encuentro::sole();
+
+        $this->put("/encuentros/{$encuentro->id}", $this->datos(['nombre' => 'Batizado 2028']))->assertSessionHasNoErrors();
+        $this->assertSame('batizado-2028', $encuentro->fresh()?->slug);
+
+        // Guardar sin cambiar el nombre no le agrega un número (no choca consigo mismo).
+        $this->put("/encuentros/{$encuentro->id}", $this->datos(['nombre' => 'Batizado 2028']));
+        $this->assertSame('batizado-2028', $encuentro->fresh()?->slug);
     }
 
     public function test_editar_sincroniza_las_opciones_de_precio(): void
@@ -153,7 +183,7 @@ class EncuentrosTest extends TestCase
         $this->actingAsRole('admin');
         $encuentro = Encuentro::factory()->publicado()->conPrecio()->create(['slug' => 'batizado-2027']);
 
-        $this->put("/encuentros/{$encuentro->id}", $this->datos(['slug' => 'otra-direccion']))->assertRedirect();
+        $this->put("/encuentros/{$encuentro->id}", $this->datos(['nombre' => 'Otro nombre']))->assertRedirect();
 
         $this->assertSame('batizado-2027', $encuentro->fresh()?->slug);
     }

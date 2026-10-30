@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { diasDelEncuentro } from '@/lib/encuentros';
+import { diasDelEncuentro, slugDelNombre } from '@/lib/encuentros';
 import type { Encuentro, Traducciones } from '@/types/encuentros';
 
 interface PrecioForm {
@@ -52,7 +52,6 @@ export default function EncuentroFormPage({
     const slugLocked = encuentro !== null && encuentro.subdominio !== 'ninguno';
     const form = useForm({
         nombre: encuentro?.nombre ?? '',
-        slug: encuentro?.slug ?? '',
         starts_on: encuentro?.starts_on ?? '',
         ends_on: encuentro?.ends_on ?? '',
         lugar: encuentro?.lugar ?? '',
@@ -245,43 +244,20 @@ export default function EncuentroFormPage({
                 {/* Dirección */}
                 <section className="space-y-3 panel p-5">
                     <PanelTitle>Dirección de la página</PanelTitle>
-                    {slugLocked ? (
-                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Lock className="h-4 w-4 shrink-0" />
-                            <span className="font-mono text-foreground">
-                                {data.slug}.{dominio}
-                            </span>
-                            — ya está creada y no se puede cambiar.
-                        </p>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    id="slug"
-                                    aria-label="Dirección"
-                                    value={data.slug}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'slug',
-                                            e.target.value.toLowerCase(),
-                                        )
-                                    }
-                                    maxLength={63}
-                                    placeholder="batizado-2027"
-                                    className="font-mono"
-                                />
-                                <span className="shrink-0 font-mono text-sm text-muted-foreground">
-                                    .{dominio}
-                                </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Si la dejas vacía, sale del nombre. Solo letras
-                                sin tilde, números y guiones. Se crea al
-                                publicar por primera vez y después no se puede
-                                cambiar.
-                            </p>
-                        </>
-                    )}
+                    <p className="flex flex-wrap items-center gap-2 rounded-md bg-secondary/50 px-3 py-2 text-sm">
+                        <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="font-mono break-all text-foreground">
+                            {slugLocked
+                                ? encuentro.slug
+                                : slugDelNombre(data.nombre) || '…'}
+                            .{dominio}
+                        </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {slugLocked
+                            ? 'Ya está creada y no se puede cambiar.'
+                            : 'Se arma sola a partir del nombre, sin tildes ni caracteres especiales. Si ya existe, se le agrega un número. Se crea al publicar por primera vez y después no cambia.'}
+                    </p>
                 </section>
 
                 {/* Inscripciones */}
