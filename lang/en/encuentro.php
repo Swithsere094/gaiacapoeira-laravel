@@ -6,6 +6,13 @@
 
 return [
     'ui' => [
+        'terminado_titulo' => 'This event is over',
+        'terminado_texto' => 'Thank you all for joining us!',
+        'fotos' => 'Photos',
+        'foto_n' => 'Photo :n of :total',
+        'anterior' => 'Previous photo',
+        'siguiente' => 'Next photo',
+        'cerrar' => 'Close',
         'idioma' => 'Language',
         'opciones' => 'Registration options',
         'datos_pago' => 'Payment details',

@@ -188,13 +188,15 @@ export default function InscripcionPage({
                     </section>
                 )}
 
-                {!cancelada && inscripcion.saldo > 0 && (
-                    <ReportarPago
-                        url={`${encuentro.base}/inscripcion/${token}/pago`}
-                        saldo={inscripcion.saldo}
-                        metodos={metodos}
-                    />
-                )}
+                {!cancelada &&
+                    inscripcion.saldo > 0 &&
+                    encuentro.estado !== 'terminado' && (
+                        <ReportarPago
+                            url={`${encuentro.base}/inscripcion/${token}/pago`}
+                            saldo={inscripcion.saldo}
+                            metodos={metodos}
+                        />
+                    )}
 
                 <section className="space-y-2 panel p-5">
                     <PanelTitle>

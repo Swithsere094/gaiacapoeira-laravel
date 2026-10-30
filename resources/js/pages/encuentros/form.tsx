@@ -60,6 +60,7 @@ export default function EncuentroFormPage({
         mapa_url: encuentro?.mapa_url ?? '',
         descripcion: encuentro?.descripcion ?? '',
         info_pago: encuentro?.info_pago ?? '',
+        mensaje_final: encuentro?.mensaje_final ?? '',
         cupo: encuentro?.cupo?.toString() ?? '',
         inscripciones_desde: encuentro?.inscripciones_desde ?? '',
         inscripciones_hasta: encuentro?.inscripciones_hasta ?? '',
@@ -477,6 +478,26 @@ export default function EncuentroFormPage({
                     <p className="text-xs text-muted-foreground">
                         Se muestra en la página y en la confirmación de cada
                         inscripción.
+                    </p>
+                </section>
+
+                {/* Después del encuentro */}
+                <section className="space-y-3 panel p-5">
+                    <PanelTitle>Mensaje de cierre (opcional)</PanelTitle>
+                    <Textarea
+                        id="mensaje_final"
+                        aria-label="Mensaje de cierre"
+                        value={data.mensaje_final}
+                        onChange={(e) =>
+                            form.setData('mensaje_final', e.target.value)
+                        }
+                        rows={3}
+                        maxLength={3000}
+                        placeholder="Ej.: ¡Gracias por venir! Aquí quedan las fotos del batizado."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Se muestra cuando termines el encuentro y la página
+                        quede como recuerdo.
                     </p>
                 </section>
 

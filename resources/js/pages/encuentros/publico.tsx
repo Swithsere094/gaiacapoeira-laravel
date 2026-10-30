@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { CalendarDays, Lock, MapPin, Wallet } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
+import { GaleriaPublica } from '@/components/encuentros/galeria-publica';
 import { InvitadosPublico } from '@/components/encuentros/invitados-publico';
 import { MapaPublico } from '@/components/encuentros/mapa-publico';
 import { ProgramaPublico } from '@/components/encuentros/programa-publico';
@@ -33,6 +34,8 @@ export default function EncuentroPublicoPage({
     metodos: string[];
 }) {
     const { t, locale } = useT();
+    // Terminado: la página queda como recuerdo (sin inscripción).
+    const terminado = encuentro.estado === 'terminado';
     const comoLlegar = mapaLinkUrl(
         encuentro.direccion ?? null,
         encuentro.mapa_url,
@@ -84,6 +87,19 @@ export default function EncuentroPublicoPage({
             </div>
 
             <div className="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6">
+                {terminado && (
+                    <section className="space-y-2 panel p-5 text-center">
+                        <h2 className="font-serif text-2xl font-bold text-foreground">
+                            {t('terminado_titulo')}
+                        </h2>
+                        <p className="whitespace-pre-line text-foreground">
+                            {encuentro.mensaje_final || t('terminado_texto')}
+                        </p>
+                    </section>
+                )}
+
+                {terminado && <GaleriaPublica fotos={encuentro.fotos ?? []} />}
+
                 {encuentro.descripcion && (
                     <p className="text-lg leading-relaxed whitespace-pre-line text-foreground">
                         {encuentro.descripcion}
@@ -104,45 +120,51 @@ export default function EncuentroPublicoPage({
                     enlace={encuentro.mapa_url}
                 />
 
-                <section className="space-y-3">
-                    <PanelTitle>{t('opciones')}</PanelTitle>
-                    <ul className="grid gap-3 sm:grid-cols-2">
-                        {encuentro.precios.map((p) => (
-                            <li key={p.id} className="panel p-4">
-                                <p className="font-medium text-foreground">
-                                    {p.nombre}
-                                </p>
-                                {p.descripcion && (
-                                    <p className="text-sm text-muted-foreground">
-                                        {p.descripcion}
-                                    </p>
-                                )}
-                                <p className="mt-1 font-serif text-xl font-bold text-primary">
-                                    {formatMoney(p.valor)}
-                                </p>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
+                {!terminado && (
+                    <>
+                        <section className="space-y-3">
+                            <PanelTitle>{t('opciones')}</PanelTitle>
+                            <ul className="grid gap-3 sm:grid-cols-2">
+                                {encuentro.precios.map((p) => (
+                                    <li key={p.id} className="panel p-4">
+                                        <p className="font-medium text-foreground">
+                                            {p.nombre}
+                                        </p>
+                                        {p.descripcion && (
+                                            <p className="text-sm text-muted-foreground">
+                                                {p.descripcion}
+                                            </p>
+                                        )}
+                                        <p className="mt-1 font-serif text-xl font-bold text-primary">
+                                            {formatMoney(p.valor)}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
 
-                {encuentro.info_pago && (
-                    <section className="space-y-2 panel p-5">
-                        <PanelTitle icon={Wallet}>{t('datos_pago')}</PanelTitle>
-                        <p className="whitespace-pre-line text-foreground">
-                            {encuentro.info_pago}
-                        </p>
-                    </section>
-                )}
+                        {encuentro.info_pago && (
+                            <section className="space-y-2 panel p-5">
+                                <PanelTitle icon={Wallet}>
+                                    {t('datos_pago')}
+                                </PanelTitle>
+                                <p className="whitespace-pre-line text-foreground">
+                                    {encuentro.info_pago}
+                                </p>
+                            </section>
+                        )}
 
-                {cierre ? (
-                    <Cerrado cierre={cierre} encuentro={encuentro} />
-                ) : (
-                    <InscripcionForm
-                        encuentro={encuentro}
-                        tallas={tallas}
-                        cortes={cortes}
-                        metodos={metodos}
-                    />
+                        {cierre ? (
+                            <Cerrado cierre={cierre} encuentro={encuentro} />
+                        ) : (
+                            <InscripcionForm
+                                encuentro={encuentro}
+                                tallas={tallas}
+                                cortes={cortes}
+                                metodos={metodos}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </PublicLayout>

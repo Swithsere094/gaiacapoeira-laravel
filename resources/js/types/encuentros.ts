@@ -2,7 +2,8 @@ export type EncuentroEstado =
     | 'borrador'
     | 'publicado'
     | 'cerrado'
-    | 'terminado';
+    | 'terminado'
+    | 'archivado';
 
 export type PagoEstado = 'pendiente' | 'parcial' | 'pagado';
 
@@ -67,6 +68,8 @@ export interface Encuentro {
     mapa_url: string | null;
     descripcion: string | null;
     info_pago: string | null;
+    mensaje_final: string | null;
+    fotos_count: number;
     portada_url: string | null;
     cupo: number | null;
     inscripciones_desde: string | null;
@@ -113,6 +116,13 @@ export interface InscripcionRow {
     pagos: PagoRow[];
 }
 
+/** Foto de la galería en la página pública. */
+export interface FotoPublica {
+    id: string;
+    foto: string;
+    miniatura: string;
+}
+
 /** Encuentro en su página pública (sin datos internos). */
 export interface EncuentroPublico {
     nombre: string;
@@ -131,6 +141,8 @@ export interface EncuentroPublico {
     precios: PrecioOpcion[];
     /** Solo en la página del encuentro (no en la consulta de la inscripción). */
     direccion?: string | null;
+    mensaje_final?: string | null;
+    fotos?: FotoPublica[];
     actividades?: Actividad[];
     invitados?: (Invitado & { foto: string | null })[];
 }

@@ -19,7 +19,8 @@ use Illuminate\Support\Carbon;
  *
  * Estados: borrador (solo lo ve quien gestiona) → publicado (página e
  * inscripciones abiertas, salvo fechas o cupo) → cerrado (página visible,
- * sin inscripciones) → terminado.
+ * sin inscripciones) → terminado (recuerdo: mensaje de cierre y fotos) →
+ * archivado (sin página: se borró el subdominio; los datos quedan).
  *
  * @property string $id
  * @property string $slug
@@ -31,6 +32,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $mapa_url
  * @property string|null $descripcion
  * @property string|null $info_pago
+ * @property string|null $mensaje_final Se muestra cuando está terminado.
  * @property string|null $portada_url
  * @property int|null $cupo
  * @property CarbonImmutable|null $inscripciones_desde
@@ -46,6 +48,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Inscripcion> $inscripciones
  * @property-read Collection<int, EncuentroActividad> $actividades
  * @property-read Collection<int, EncuentroInvitado> $invitados
+ * @property-read Collection<int, EncuentroFoto> $fotos
  * @property-read Evento|null $evento
  * @property-read int|null $inscripciones_count Con withCount('inscripciones').
  */
@@ -55,7 +58,7 @@ class Encuentro extends Model
     use HasFactory, HasUuids, Traducible;
 
     /** Campos que el organizador puede traducir (portugués e inglés). */
-    public const TRADUCIBLES = ['nombre', 'descripcion', 'info_pago'];
+    public const TRADUCIBLES = ['nombre', 'descripcion', 'info_pago', 'mensaje_final'];
 
     public const BORRADOR = 'borrador';
 
@@ -65,7 +68,9 @@ class Encuentro extends Model
 
     public const TERMINADO = 'terminado';
 
-    public const ESTADOS = [self::BORRADOR, self::PUBLICADO, self::CERRADO, self::TERMINADO];
+    public const ARCHIVADO = 'archivado';
+
+    public const ESTADOS = [self::BORRADOR, self::PUBLICADO, self::CERRADO, self::TERMINADO, self::ARCHIVADO];
 
     /**
      * Subdominios que no se pueden usar: los de servicios del hosting y los
@@ -78,7 +83,7 @@ class Encuentro extends Model
 
     protected $fillable = [
         'slug', 'nombre', 'starts_on', 'ends_on', 'lugar', 'direccion', 'mapa_url',
-        'descripcion', 'info_pago', 'portada_url', 'cupo',
+        'descripcion', 'info_pago', 'mensaje_final', 'portada_url', 'cupo',
         'inscripciones_desde', 'inscripciones_hasta', 'estado',
         'subdominio', 'respuesta_api', 'evento_id', 'user_id',
     ];
@@ -117,6 +122,12 @@ class Encuentro extends Model
         return $this->hasMany(EncuentroInvitado::class)->orderBy('sort_order');
     }
 
+    /** @return HasMany<EncuentroFoto, $this> */
+    public function fotos(): HasMany
+    {
+        return $this->hasMany(EncuentroFoto::class)->orderBy('sort_order');
+    }
+
     /** @return HasMany<Inscripcion, $this> */
     public function inscripciones(): HasMany
     {
@@ -138,7 +149,7 @@ class Encuentro extends Model
     /** La página pública se ve (publicado, cerrado o terminado). */
     public function esVisible(): bool
     {
-        return $this->estado !== self::BORRADOR;
+        return in_array($this->estado, [self::PUBLICADO, self::CERRADO, self::TERMINADO], true);
     }
 
     /**

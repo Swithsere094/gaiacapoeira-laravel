@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
 use App\Models\EncuentroActividad;
+use App\Models\EncuentroFoto;
 use App\Models\EncuentroInvitado;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
@@ -38,7 +39,7 @@ class EncuentroPublicoController extends Controller
     public function show(Request $request): Response
     {
         $encuentro = $this->encuentro($request);
-        $encuentro->load('precios', 'actividades', 'invitados');
+        $encuentro->load('precios', 'actividades', 'invitados', 'fotos');
         $base = (string) $request->attributes->get('encuentro_base');
         $locale = app()->getLocale();
 
@@ -46,6 +47,12 @@ class EncuentroPublicoController extends Controller
             'encuentro' => [
                 ...$this->present($encuentro, $request),
                 'direccion' => $encuentro->direccion,
+                'mensaje_final' => $encuentro->traducido('mensaje_final', $locale),
+                'fotos' => $encuentro->fotos->map(fn (EncuentroFoto $f) => [
+                    'id' => $f->id,
+                    'foto' => "{$base}/fotos/{$f->id}",
+                    'miniatura' => "{$base}/fotos/{$f->id}/mini",
+                ])->values(),
                 'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray($locale))->values(),
                 'invitados' => $encuentro->invitados->map(fn (EncuentroInvitado $i) => [
                     'id' => $i->id,
@@ -261,6 +268,22 @@ class EncuentroPublicoController extends Controller
         abort_if($path === null, 404);
 
         return response()->file($path);
+    }
+
+    /** Foto de la galería (o su miniatura): la carpeta de subidas es privada. */
+    public function foto(Request $request, string $foto, bool $miniatura = false): BinaryFileResponse
+    {
+        $registro = $this->encuentro($request)->fotos()->whereKey($foto)->firstOrFail();
+        $path = Uploads::pathFor($miniatura ? $registro->miniatura_url : $registro->foto_url);
+        abort_if($path === null, 404);
+
+        // Las fotos no cambian: el navegador las puede guardar un día.
+        return response()->file($path, ['Cache-Control' => 'private, max-age=86400']);
+    }
+
+    public function fotoMiniatura(Request $request, string $foto): BinaryFileResponse
+    {
+        return $this->foto($request, $foto, true);
     }
 
     private function encuentro(Request $request): Encuentro

@@ -9,6 +9,13 @@
 
 return [
     'ui' => [
+        'terminado_titulo' => 'Este encuentro ya terminó',
+        'terminado_texto' => '¡Gracias a todas y todos por acompañarnos!',
+        'fotos' => 'Fotos',
+        'foto_n' => 'Foto :n de :total',
+        'anterior' => 'Foto anterior',
+        'siguiente' => 'Foto siguiente',
+        'cerrar' => 'Cerrar',
         'idioma' => 'Idioma',
         'opciones' => 'Opciones de inscripción',
         'datos_pago' => 'Datos de pago',

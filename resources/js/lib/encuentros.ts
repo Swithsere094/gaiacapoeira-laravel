@@ -127,7 +127,8 @@ export const ESTADO_LABELS: Record<EncuentroEstado, string> = {
     borrador: 'Borrador',
     publicado: 'Publicado',
     cerrado: 'Inscripciones cerradas',
-    terminado: 'Terminado',
+    terminado: 'Terminado (recuerdo)',
+    archivado: 'Archivado (sin página)',
 };
 
 export const PAGO_LABELS: Record<PagoEstado, string> = {
@@ -154,6 +155,7 @@ export const ESTADO_CLASSES: Record<EncuentroEstado, string> = {
     publicado: 'bg-primary/20 text-foreground',
     cerrado: 'bg-chart-4/20 text-foreground',
     terminado: 'bg-muted text-muted-foreground',
+    archivado: 'bg-muted text-muted-foreground',
 };
 
 export const PAGO_CLASSES: Record<PagoEstado, string> = {

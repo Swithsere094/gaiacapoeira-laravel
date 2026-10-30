@@ -195,6 +195,12 @@ export function TraduccionesEditor<
                             largo: true,
                             max: 2000,
                         },
+                        {
+                            campo: 'mensaje_final',
+                            label: 'Mensaje de cierre',
+                            largo: true,
+                            max: 3000,
+                        },
                     ]).map((c) =>
                         fila(
                             encuentro,

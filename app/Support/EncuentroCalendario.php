@@ -7,7 +7,8 @@ use App\Models\Evento;
 
 /**
  * Copia de un encuentro en el calendario del sitio (`eventos`): existe
- * mientras el encuentro está publicado o cerrado, con su nombre, fechas,
+ * mientras el encuentro está publicado, cerrado, terminado o archivado (queda
+ * como historia; sin página, sin el enlace), con su nombre, fechas,
  * lugar y el enlace a la página. Si alguien la edita desde el calendario,
  * se vuelve a pisar con los datos del encuentro al siguiente cambio.
  */
@@ -15,7 +16,7 @@ final class EncuentroCalendario
 {
     public static function sync(Encuentro $encuentro): void
     {
-        if (! in_array($encuentro->estado, [Encuentro::PUBLICADO, Encuentro::CERRADO], true)) {
+        if ($encuentro->estado === Encuentro::BORRADOR) {
             self::remove($encuentro);
 
             return;
@@ -23,7 +24,11 @@ final class EncuentroCalendario
 
         $data = [
             'title' => $encuentro->nombre,
-            'description' => 'Página e inscripciones: '.$encuentro->url(),
+            'description' => match ($encuentro->estado) {
+                Encuentro::PUBLICADO, Encuentro::CERRADO => 'Página e inscripciones: '.$encuentro->url(),
+                Encuentro::TERMINADO => 'Página del encuentro: '.$encuentro->url(),
+                default => null,
+            },
             'location' => $encuentro->lugar,
             'starts_on' => $encuentro->starts_on->toDateString(),
             'ends_on' => $encuentro->ends_on?->toDateString(),

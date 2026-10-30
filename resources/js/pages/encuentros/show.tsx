@@ -1,5 +1,9 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    Archive,
+    ArchiveRestore,
+    Flag,
+    Images,
     ClipboardCheck,
     Download,
     ExternalLink,
@@ -70,6 +74,9 @@ export default function EncuentroShowPage({
     const [dialogKey, setDialogKey] = useState(0);
     const selected = inscripciones.find((i) => i.id === selectedId) ?? null;
     const publicado = encuentro.estado !== 'borrador';
+    const abierto = ['publicado', 'cerrado'].includes(encuentro.estado);
+    const terminado = encuentro.estado === 'terminado';
+    const archivado = encuentro.estado === 'archivado';
 
     const shown = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -123,6 +130,38 @@ export default function EncuentroShowPage({
             confirmLabel: 'Volver a borrador',
         });
         if (ok) post('despublicar');
+    };
+
+    const terminar = async () => {
+        const ok = await confirm({
+            title: terminado
+                ? '¿Volver a inscripciones cerradas?'
+                : `¿Terminar «${encuentro.nombre}»?`,
+            description: terminado
+                ? 'La página deja de ser un recuerdo y vuelve a mostrar las opciones, sin aceptar inscripciones.'
+                : 'Se cierran las inscripciones y la página queda como recuerdo: el mensaje de cierre, la programación, los invitados y las fotos. Se puede deshacer.',
+            confirmLabel: terminado ? 'Volver a cerradas' : 'Terminar',
+        });
+        if (ok) post('terminar');
+    };
+
+    const archivar = async () => {
+        const ok = await confirm({
+            title: '¿Quitar la página?',
+            description: `Se borra la dirección ${encuentro.url} y la página deja de verse, también el enlace privado de cada inscripción. Las inscripciones, los pagos y las fotos quedan guardados aquí, y la página se puede volver a publicar como recuerdo.`,
+            confirmLabel: 'Quitar la página',
+            destructive: true,
+        });
+        if (ok) post('archivar');
+    };
+
+    const restaurar = async () => {
+        const ok = await confirm({
+            title: '¿Volver a publicar como recuerdo?',
+            description: `Se crea otra vez la dirección ${encuentro.url} con la página de recuerdo. Puede tardar unos minutos en funcionar.`,
+            confirmLabel: 'Publicar como recuerdo',
+        });
+        if (ok) post('restaurar');
     };
 
     const eliminar = async () => {
@@ -213,7 +252,9 @@ export default function EncuentroShowPage({
                             rel="noopener noreferrer"
                         >
                             <Eye className="h-4 w-4" />
-                            {publicado ? 'Ver la página' : 'Vista previa'}
+                            {publicado && !archivado
+                                ? 'Ver la página'
+                                : 'Vista previa'}
                         </a>
                     </Button>
                     {!publicado ? (
@@ -224,7 +265,7 @@ export default function EncuentroShowPage({
                             <Send className="h-4 w-4" />
                             Publicar
                         </Button>
-                    ) : (
+                    ) : !abierto ? null : (
                         <>
                             <Button
                                 variant="outline"
@@ -253,6 +294,43 @@ export default function EncuentroShowPage({
                             </Button>
                         </>
                     )}
+                    {(abierto || terminado) && (
+                        <Button
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => void terminar()}
+                        >
+                            <Flag className="h-4 w-4" />
+                            {terminado
+                                ? 'Volver a inscripciones cerradas'
+                                : 'Terminar encuentro'}
+                        </Button>
+                    )}
+                    {terminado && (
+                        <Button
+                            variant="ghost"
+                            className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => void archivar()}
+                        >
+                            <Archive className="h-4 w-4" />
+                            Quitar la página
+                        </Button>
+                    )}
+                    {archivado && (
+                        <Button
+                            className="gap-2"
+                            onClick={() => void restaurar()}
+                        >
+                            <ArchiveRestore className="h-4 w-4" />
+                            Publicar como recuerdo
+                        </Button>
+                    )}
+                    <Button asChild variant="outline" className="gap-2">
+                        <Link href={`/encuentros/${encuentro.id}/fotos`}>
+                            <Images className="h-4 w-4" />
+                            Fotos ({encuentro.fotos_count})
+                        </Link>
+                    </Button>
                     {inscripciones.length === 0 && (
                         <Button
                             variant="ghost"

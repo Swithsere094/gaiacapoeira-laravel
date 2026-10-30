@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
 use App\Models\EncuentroActividad;
+use App\Models\EncuentroFoto;
 use App\Models\EncuentroInvitado;
 use App\Models\EncuentroPrecio;
 use App\Models\Inscripcion;
@@ -217,6 +218,72 @@ class EncuentroController extends Controller
         return back()->with('success', $cerrar ? 'Inscripciones cerradas.' : 'Inscripciones abiertas otra vez.');
     }
 
+    /**
+     * Terminar el encuentro: la página queda como recuerdo (mensaje de
+     * cierre y fotos, sin inscripciones). Otra vez = deshacer (vuelve a
+     * inscripciones cerradas).
+     */
+    public function terminar(Encuentro $encuentro): RedirectResponse
+    {
+        if ($encuentro->estado === Encuentro::TERMINADO) {
+            $encuentro->update(['estado' => Encuentro::CERRADO]);
+            EncuentroCalendario::sync($encuentro);
+
+            return back()->with('success', 'El encuentro volvió a inscripciones cerradas.');
+        }
+
+        if (! in_array($encuentro->estado, [Encuentro::PUBLICADO, Encuentro::CERRADO], true)) {
+            return back()->with('error', 'Solo un encuentro publicado se puede terminar.');
+        }
+
+        $encuentro->update(['estado' => Encuentro::TERMINADO]);
+        EncuentroCalendario::sync($encuentro);
+
+        return back()->with('success', 'Encuentro terminado: la página queda como recuerdo.');
+    }
+
+    /**
+     * Quitar la página de un encuentro terminado: borra el subdominio en
+     * Hostinger y lo deja archivado. Las inscripciones y los datos quedan.
+     */
+    public function archivar(Encuentro $encuentro, HostingerClient $hostinger): RedirectResponse
+    {
+        if ($encuentro->estado !== Encuentro::TERMINADO) {
+            return back()->with('error', 'Primero termina el encuentro.');
+        }
+
+        if ($encuentro->subdominio === 'creado') {
+            $resultado = $hostinger->eliminarSubdominio($encuentro->slug);
+
+            if (! $resultado['ok']) {
+                return back()->with('error', 'Hostinger no eliminó el subdominio: '.$this->mensaje($resultado));
+            }
+        }
+
+        $encuentro->update(['estado' => Encuentro::ARCHIVADO, 'subdominio' => 'ninguno', 'respuesta_api' => null]);
+        EncuentroCalendario::sync($encuentro);
+
+        return back()->with('success', "Se quitó la página {$encuentro->url()}. Los datos del encuentro quedan guardados.");
+    }
+
+    /** Volver a publicar un encuentro archivado como recuerdo (crea otra vez el subdominio). */
+    public function restaurar(Encuentro $encuentro, HostingerClient $hostinger): RedirectResponse
+    {
+        if ($encuentro->estado !== Encuentro::ARCHIVADO) {
+            return back()->with('error', 'Solo un encuentro archivado se puede volver a publicar como recuerdo.');
+        }
+
+        $resultado = $hostinger->crearSubdominio($encuentro->slug);
+        if (! $resultado['ok']) {
+            return back()->with('error', 'Hostinger no creó el subdominio: '.$this->mensaje($resultado));
+        }
+
+        $encuentro->update(['estado' => Encuentro::TERMINADO, 'subdominio' => 'creado', 'respuesta_api' => $resultado]);
+        EncuentroCalendario::sync($encuentro);
+
+        return back()->with('success', "La página volvió como recuerdo en {$encuentro->url()}. Puede tardar unos minutos en funcionar.");
+    }
+
     /** Solo sin inscripciones; borra también el subdominio y la copia en el calendario. */
     public function destroy(Encuentro $encuentro, HostingerClient $hostinger): RedirectResponse
     {
@@ -235,13 +302,14 @@ class EncuentroController extends Controller
         EncuentroCalendario::remove($encuentro);
         Uploads::delete($encuentro->portada_url);
         $encuentro->invitados->each(fn (EncuentroInvitado $i) => Uploads::delete($i->foto_url));
+        $encuentro->fotos->each(fn (EncuentroFoto $f) => EncuentroFotoController::borrarArchivos($f));
         $encuentro->delete();
 
         return redirect('/encuentros')->with('success', "Encuentro «{$encuentro->nombre}» eliminado.");
     }
 
     /**
-     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed}
+     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, mensaje_final?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed}
      */
     private function validated(Request $request, ?Encuentro $encuentro): array
     {
@@ -253,7 +321,7 @@ class EncuentroController extends Controller
 
         $slugLocked = $encuentro !== null && $encuentro->subdominio !== 'ninguno';
 
-        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed} $data */
+        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, mensaje_final?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed} $data */
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:120'],
             'slug' => $slugLocked ? ['nullable'] : [
@@ -268,6 +336,7 @@ class EncuentroController extends Controller
             'mapa_url' => ['nullable', 'url:https', 'max:500'],
             'descripcion' => ['nullable', 'string', 'max:5000'],
             'info_pago' => ['nullable', 'string', 'max:2000'],
+            'mensaje_final' => ['nullable', 'string', 'max:3000'],
             'cupo' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'inscripciones_desde' => ['nullable', 'date'],
             'inscripciones_hasta' => ['nullable', 'date', 'after_or_equal:inscripciones_desde'],
@@ -296,7 +365,7 @@ class EncuentroController extends Controller
             'invitados.*.foto' => ['nullable', 'file', 'extensions:jpg,jpeg,png,webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'invitados.*.quitar_foto' => ['nullable', 'boolean'],
             // Traducciones opcionales: {pt: {campo: texto}, en: {…}}.
-            ...$this->reglasTraduccion('traducciones', ['nombre' => 120, 'descripcion' => 5000, 'info_pago' => 2000]),
+            ...$this->reglasTraduccion('traducciones', ['nombre' => 120, 'descripcion' => 5000, 'info_pago' => 2000, 'mensaje_final' => 3000]),
             ...$this->reglasTraduccion('precios.*.traducciones', ['nombre' => 120, 'descripcion' => 200]),
             ...$this->reglasTraduccion('actividades.*.traducciones', ['titulo' => 150, 'descripcion' => 300]),
             ...$this->reglasTraduccion('invitados.*.traducciones', ['bio' => 1500]),
@@ -352,6 +421,7 @@ class EncuentroController extends Controller
             'mapa_url' => ($data['mapa_url'] ?? null) ?: null,
             'descripcion' => ($data['descripcion'] ?? null) ?: null,
             'info_pago' => ($data['info_pago'] ?? null) ?: null,
+            'mensaje_final' => ($data['mensaje_final'] ?? null) ?: null,
             'cupo' => $data['cupo'] ?? null,
             'inscripciones_desde' => ($data['inscripciones_desde'] ?? null) ?: null,
             'inscripciones_hasta' => ($data['inscripciones_hasta'] ?? null) ?: null,
@@ -553,6 +623,8 @@ class EncuentroController extends Controller
             'mapa_url' => $encuentro->mapa_url,
             'descripcion' => $encuentro->descripcion,
             'info_pago' => $encuentro->info_pago,
+            'mensaje_final' => $encuentro->mensaje_final,
+            'fotos_count' => $encuentro->fotos()->count(),
             'portada_url' => $encuentro->portada_url,
             'cupo' => $encuentro->cupo,
             'inscripciones_desde' => $encuentro->inscripciones_desde?->toDateString(),

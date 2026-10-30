@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ArbolController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\EncuentroController;
+use App\Http\Controllers\EncuentroFotoController;
 use App\Http\Controllers\EncuentroPublicoController;
 use App\Http\Controllers\EventoController;
 use App\Http\Controllers\GaleraController;
@@ -38,6 +39,8 @@ $encuentroPublico = function () {
     Route::post('inscripcion/{token}/pago', [EncuentroPublicoController::class, 'reportarPago'])->where('token', '[A-Za-z0-9]{20,64}')->name('reportar-pago');
     Route::get('portada', [EncuentroPublicoController::class, 'portada'])->name('portada');
     Route::get('invitados/{invitado}/foto', [EncuentroPublicoController::class, 'fotoInvitado'])->whereUuid('invitado')->name('invitado-foto');
+    Route::get('fotos/{foto}', [EncuentroPublicoController::class, 'foto'])->whereUuid('foto')->name('foto');
+    Route::get('fotos/{foto}/mini', [EncuentroPublicoController::class, 'fotoMiniatura'])->whereUuid('foto')->name('foto-mini');
 };
 
 Route::domain('{encuentro}.'.config('services.hostinger.domain'))
@@ -140,6 +143,12 @@ Route::middleware('auth')->group(function () {
         Route::post('{encuentro}/publicar', [EncuentroController::class, 'publish'])->whereUuid('encuentro')->middleware('throttle:10,1');
         Route::post('{encuentro}/despublicar', [EncuentroController::class, 'unpublish'])->whereUuid('encuentro');
         Route::post('{encuentro}/inscripciones-abiertas', [EncuentroController::class, 'toggleInscripciones'])->whereUuid('encuentro');
+        Route::post('{encuentro}/terminar', [EncuentroController::class, 'terminar'])->whereUuid('encuentro');
+        Route::post('{encuentro}/archivar', [EncuentroController::class, 'archivar'])->whereUuid('encuentro')->middleware('throttle:10,1');
+        Route::post('{encuentro}/restaurar', [EncuentroController::class, 'restaurar'])->whereUuid('encuentro')->middleware('throttle:10,1');
+        Route::get('{encuentro}/fotos', [EncuentroFotoController::class, 'index'])->whereUuid('encuentro');
+        Route::post('{encuentro}/fotos', [EncuentroFotoController::class, 'store'])->whereUuid('encuentro');
+        Route::delete('{encuentro}/fotos/{foto}', [EncuentroFotoController::class, 'destroy'])->whereUuid(['encuentro', 'foto']);
         Route::get('{encuentro}/exportar', [InscripcionController::class, 'export'])->whereUuid('encuentro');
         Route::put('{encuentro}/inscripciones/{inscripcion}', [InscripcionController::class, 'update'])->whereUuid(['encuentro', 'inscripcion']);
         Route::get('{encuentro}/asistencia', [InscripcionController::class, 'asistencia'])->whereUuid('encuentro');
