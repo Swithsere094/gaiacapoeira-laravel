@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Encuentro;
 use App\Models\EncuentroActividad;
 use App\Models\EncuentroInvitado;
+use App\Models\EncuentroPrecio;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
 use App\Services\HostingerClient;
 use App\Support\EncuentroCalendario;
+use App\Support\EncuentroIdioma;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -239,7 +241,7 @@ class EncuentroController extends Controller
     }
 
     /**
-     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>}
+     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed}
      */
     private function validated(Request $request, ?Encuentro $encuentro): array
     {
@@ -251,7 +253,7 @@ class EncuentroController extends Controller
 
         $slugLocked = $encuentro !== null && $encuentro->subdominio !== 'ninguno';
 
-        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>} $data */
+        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>, traducciones?: mixed} $data */
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:120'],
             'slug' => $slugLocked ? ['nullable'] : [
@@ -293,6 +295,11 @@ class EncuentroController extends Controller
             'invitados.*.bio' => ['nullable', 'string', 'max:1500'],
             'invitados.*.foto' => ['nullable', 'file', 'extensions:jpg,jpeg,png,webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'invitados.*.quitar_foto' => ['nullable', 'boolean'],
+            // Traducciones opcionales: {pt: {campo: texto}, en: {…}}.
+            ...$this->reglasTraduccion('traducciones', ['nombre' => 120, 'descripcion' => 5000, 'info_pago' => 2000]),
+            ...$this->reglasTraduccion('precios.*.traducciones', ['nombre' => 120, 'descripcion' => 200]),
+            ...$this->reglasTraduccion('actividades.*.traducciones', ['titulo' => 150, 'descripcion' => 300]),
+            ...$this->reglasTraduccion('invitados.*.traducciones', ['bio' => 1500]),
         ], [
             'nombre.required' => 'El nombre del encuentro es obligatorio',
             'slug.required' => 'La dirección necesita letras o números',
@@ -324,6 +331,7 @@ class EncuentroController extends Controller
             'invitados.*.foto.extensions' => 'La foto de un invitado tiene que ser JPG, PNG o WEBP',
             'invitados.*.foto.mimes' => 'La foto de un invitado tiene que ser JPG, PNG o WEBP',
             'invitados.*.foto.max' => 'La foto de un invitado no puede superar 5 MB',
+            'max' => 'Una de las traducciones es demasiado larga',
         ]);
 
         return $data;
@@ -347,6 +355,7 @@ class EncuentroController extends Controller
             'cupo' => $data['cupo'] ?? null,
             'inscripciones_desde' => ($data['inscripciones_desde'] ?? null) ?: null,
             'inscripciones_hasta' => ($data['inscripciones_hasta'] ?? null) ?: null,
+            'traducciones' => EncuentroIdioma::limpiar($data['traducciones'] ?? null, Encuentro::TRADUCIBLES),
         ];
     }
 
@@ -365,7 +374,7 @@ class EncuentroController extends Controller
      * Las que llegan con id se actualizan, las nuevas se crean y las que ya
      * no están se borran (las inscripciones conservan la opción copiada).
      *
-     * @param  list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>  $precios
+     * @param  list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int, traducciones?: mixed}>  $precios
      */
     private function syncPrecios(Encuentro $encuentro, array $precios): void
     {
@@ -377,6 +386,7 @@ class EncuentroController extends Controller
                 'descripcion' => ($precio['descripcion'] ?? null) ?: null,
                 'valor' => $precio['valor'],
                 'sort_order' => $i,
+                'traducciones' => EncuentroIdioma::limpiar($precio['traducciones'] ?? null, EncuentroPrecio::TRADUCIBLES),
             ];
             $existing = ($precio['id'] ?? null) ? $encuentro->precios()->whereKey($precio['id'])->first() : null;
 
@@ -389,6 +399,26 @@ class EncuentroController extends Controller
         }
 
         $encuentro->precios()->whereNotIn('id', $keep)->delete();
+    }
+
+    /**
+     * Reglas de las traducciones de `$base` (ej. 'precios.*.traducciones'):
+     * solo portugués e inglés, solo los campos dados y con su largo máximo.
+     *
+     * @param  array<string, int>  $campos  campo => largo máximo
+     * @return array<string, list<string>>
+     */
+    private function reglasTraduccion(string $base, array $campos): array
+    {
+        $reglas = [
+            $base => ['nullable', 'array:'.implode(',', EncuentroIdioma::TRADUCCIONES)],
+            "{$base}.*" => ['nullable', 'array:'.implode(',', array_keys($campos))],
+        ];
+        foreach ($campos as $campo => $max) {
+            $reglas["{$base}.*.{$campo}"] = ['nullable', 'string', "max:{$max}"];
+        }
+
+        return $reglas;
     }
 
     /**
@@ -414,7 +444,7 @@ class EncuentroController extends Controller
      * Igual que las opciones de precio: con id se actualizan, las nuevas se
      * crean y las que ya no están se borran.
      *
-     * @param  list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>  $actividades
+     * @param  list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null, traducciones?: mixed}>  $actividades
      */
     private function syncActividades(Encuentro $encuentro, array $actividades): void
     {
@@ -428,6 +458,7 @@ class EncuentroController extends Controller
                 'titulo' => trim($actividad['titulo']),
                 'descripcion' => ($actividad['descripcion'] ?? null) ?: null,
                 'sort_order' => $i,
+                'traducciones' => EncuentroIdioma::limpiar($actividad['traducciones'] ?? null, EncuentroActividad::TRADUCIBLES),
             ];
             $existing = ($actividad['id'] ?? null) ? $encuentro->actividades()->whereKey($actividad['id'])->first() : null;
 
@@ -447,7 +478,7 @@ class EncuentroController extends Controller
      * reemplaza la anterior y `quitar_foto` la borra. Al quitar un invitado
      * se borra también su foto del disco.
      *
-     * @param  list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>  $invitados
+     * @param  list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed, traducciones?: mixed}>  $invitados
      */
     private function syncInvitados(Request $request, Encuentro $encuentro, array $invitados): void
     {
@@ -464,6 +495,7 @@ class EncuentroController extends Controller
                 'ciudad' => ($datos['ciudad'] ?? null) ?: null,
                 'bio' => ($datos['bio'] ?? null) ?: null,
                 'sort_order' => $i,
+                'traducciones' => EncuentroIdioma::limpiar($datos['traducciones'] ?? null, EncuentroInvitado::TRADUCIBLES),
             ]);
 
             $foto = $request->file("invitados.{$i}.foto");
@@ -529,13 +561,15 @@ class EncuentroController extends Controller
             'subdominio' => $encuentro->subdominio,
             'url' => $encuentro->url(),
             'respaldo_url' => '/e/'.$encuentro->slug,
+            'traducciones' => $encuentro->traducciones,
             'precios' => $encuentro->precios->map(fn ($p) => [
                 'id' => $p->id,
                 'nombre' => $p->nombre,
                 'descripcion' => $p->descripcion,
                 'valor' => $p->valor,
+                'traducciones' => $p->traducciones,
             ])->values(),
-            'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray())->values(),
+            'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => [...$a->toPublicArray(), 'traducciones' => $a->traducciones])->values(),
             'invitados' => $encuentro->invitados->map(fn (EncuentroInvitado $i) => [
                 'id' => $i->id,
                 'nombre' => $i->nombre,
@@ -544,6 +578,7 @@ class EncuentroController extends Controller
                 'ciudad' => $i->ciudad,
                 'bio' => $i->bio,
                 'foto_url' => $i->foto_url,
+                'traducciones' => $i->traducciones,
             ])->values(),
         ];
     }

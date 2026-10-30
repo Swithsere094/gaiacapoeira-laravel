@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Traducible;
 use Carbon\CarbonImmutable;
 use Database\Factories\EncuentroFactory;
 use Illuminate\Database\Eloquent\Collection;
@@ -51,7 +52,10 @@ use Illuminate\Support\Carbon;
 class Encuentro extends Model
 {
     /** @use HasFactory<EncuentroFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, Traducible;
+
+    /** Campos que el organizador puede traducir (portugués e inglés). */
+    public const TRADUCIBLES = ['nombre', 'descripcion', 'info_pago'];
 
     public const BORRADOR = 'borrador';
 

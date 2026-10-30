@@ -31,11 +31,16 @@ const FORMATS = {
     weekday: { weekday: 'long', day: 'numeric', month: 'long' },
 } satisfies Record<string, Intl.DateTimeFormatOptions>;
 
+/** `intlLocale`: 'es-ES' en todo el sitio; las páginas públicas de un encuentro pasan el de su idioma (INTL_LOCALES de lib/i18n). */
 export function formatDate(
     value: string,
     style: keyof typeof FORMATS = 'long',
+    intlLocale = 'es-ES',
 ): string {
-    const label = parseDate(value).toLocaleDateString('es-ES', FORMATS[style]);
+    const label = parseDate(value).toLocaleDateString(
+        intlLocale,
+        FORMATS[style],
+    );
 
     return style === 'month' || style === 'weekday'
         ? label.charAt(0).toUpperCase() + label.slice(1)

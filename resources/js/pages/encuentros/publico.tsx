@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDate } from '@/lib/dates';
 import { formatMoney, formatRange, mapaLinkUrl } from '@/lib/encuentros';
+import { INTL_LOCALES, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { EncuentroPublico } from '@/types/encuentros';
 
@@ -31,6 +32,7 @@ export default function EncuentroPublicoPage({
     cortes: string[];
     metodos: string[];
 }) {
+    const { t, locale } = useT();
     const comoLlegar = mapaLinkUrl(
         encuentro.direccion ?? null,
         encuentro.mapa_url,
@@ -57,6 +59,7 @@ export default function EncuentroPublicoPage({
                             {formatRange(
                                 encuentro.starts_on,
                                 encuentro.ends_on,
+                                locale,
                             )}
                         </span>
                         {encuentro.lugar && (
@@ -102,7 +105,7 @@ export default function EncuentroPublicoPage({
                 />
 
                 <section className="space-y-3">
-                    <PanelTitle>Opciones de inscripción</PanelTitle>
+                    <PanelTitle>{t('opciones')}</PanelTitle>
                     <ul className="grid gap-3 sm:grid-cols-2">
                         {encuentro.precios.map((p) => (
                             <li key={p.id} className="panel p-4">
@@ -124,7 +127,7 @@ export default function EncuentroPublicoPage({
 
                 {encuentro.info_pago && (
                     <section className="space-y-2 panel p-5">
-                        <PanelTitle icon={Wallet}>Datos de pago</PanelTitle>
+                        <PanelTitle icon={Wallet}>{t('datos_pago')}</PanelTitle>
                         <p className="whitespace-pre-line text-foreground">
                             {encuentro.info_pago}
                         </p>
@@ -153,12 +156,19 @@ function Cerrado({
     cierre: NonNullable<Cierre>;
     encuentro: EncuentroPublico;
 }) {
+    const { t, locale } = useT();
     const mensaje =
         cierre === 'antes' && encuentro.inscripciones_desde
-            ? `Las inscripciones abren el ${formatDate(encuentro.inscripciones_desde)}.`
+            ? t('cierre.antes', {
+                  fecha: formatDate(
+                      encuentro.inscripciones_desde,
+                      'long',
+                      INTL_LOCALES[locale],
+                  ),
+              })
             : cierre === 'cupo'
-              ? 'Se llenó el cupo de este encuentro.'
-              : 'Las inscripciones de este encuentro están cerradas.';
+              ? t('cierre.cupo')
+              : t('cierre.cerrado');
 
     return (
         <section className="flex items-start gap-3 panel p-5">
@@ -204,6 +214,7 @@ function InscripcionForm({
         // Trampa para bots: oculto, una persona no lo llena.
         sitio_web: '',
     });
+    const { t, locale } = useT();
     const { data } = form;
     const elegido = encuentro.precios.find((p) => p.id === data.precio_id);
 
@@ -247,41 +258,46 @@ function InscripcionForm({
         <section className="space-y-5 panel p-5 sm:p-6">
             <div>
                 <h2 className="font-serif text-2xl font-bold text-foreground">
-                    Inscríbete
+                    {t('inscribete')}
                 </h2>
                 {encuentro.inscripciones_hasta && (
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Inscripciones abiertas hasta el{' '}
-                        {formatDate(encuentro.inscripciones_hasta)}.
+                        {t('abiertas_hasta', {
+                            fecha: formatDate(
+                                encuentro.inscripciones_hasta,
+                                'long',
+                                INTL_LOCALES[locale],
+                            ),
+                        })}
                     </p>
                 )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    {text('nombre', 'Nombre completo', {
+                    {text('nombre', t('campos.nombre'), {
                         required: true,
                         autoComplete: 'name',
                     })}
-                    {text('apelido', 'Apelido (opcional)', { max: 60 })}
-                    {text('grupo', 'Grupo', { required: true })}
-                    {text('profesor', 'Profesor (opcional)')}
-                    {text('graduacion', 'Graduación (opcional)', {
+                    {text('apelido', t('campos.apelido'), { max: 60 })}
+                    {text('grupo', t('campos.grupo'), { required: true })}
+                    {text('profesor', t('campos.profesor'))}
+                    {text('graduacion', t('campos.graduacion'), {
                         max: 60,
-                        placeholder: 'Ej.: corda azul',
+                        placeholder: t('campos.graduacion_ej'),
                     })}
-                    {text('ciudad', 'Ciudad', {
+                    {text('ciudad', t('campos.ciudad'), {
                         required: true,
                         max: 80,
                         autoComplete: 'address-level2',
                     })}
-                    {text('telefono', 'Teléfono / WhatsApp', {
+                    {text('telefono', t('campos.telefono'), {
                         required: true,
                         type: 'tel',
                         max: 30,
                         autoComplete: 'tel',
                     })}
-                    {text('email', 'Correo (opcional)', {
+                    {text('email', t('campos.email'), {
                         type: 'email',
                         max: 150,
                         autoComplete: 'email',
@@ -289,7 +305,7 @@ function InscripcionForm({
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Talla de camiseta (opcional)" htmlFor="talla">
+                    <Field label={t('campos.talla')} htmlFor="talla">
                         <select
                             id="talla"
                             value={data.talla}
@@ -302,7 +318,9 @@ function InscripcionForm({
                             }
                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
                         >
-                            <option value="">No aplica</option>
+                            <option value="">
+                                {t('campos.talla_no_aplica')}
+                            </option>
                             {tallas.map((t) => (
                                 <option key={t} value={t}>
                                     {t}
@@ -312,7 +330,7 @@ function InscripcionForm({
                     </Field>
                     {data.talla && (
                         <Field
-                            label="Corte de la camiseta"
+                            label={t('campos.corte')}
                             htmlFor="corte"
                             required
                         >
@@ -327,10 +345,12 @@ function InscripcionForm({
                                 }
                                 className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
                             >
-                                <option value="">Elige el corte</option>
+                                <option value="">
+                                    {t('campos.corte_elige')}
+                                </option>
                                 {cortes.map((c) => (
                                     <option key={c} value={c}>
-                                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                                        {t(`cortes.${c}`)}
                                     </option>
                                 ))}
                             </select>
@@ -339,20 +359,24 @@ function InscripcionForm({
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                    {text('emergencia_nombre', 'Contacto de emergencia', {
+                    {text('emergencia_nombre', t('campos.emergencia_nombre'), {
                         required: true,
-                        placeholder: 'Nombre',
+                        placeholder: t('campos.emergencia_placeholder'),
                     })}
-                    {text('emergencia_telefono', 'Teléfono de emergencia', {
-                        required: true,
-                        type: 'tel',
-                        max: 30,
-                    })}
+                    {text(
+                        'emergencia_telefono',
+                        t('campos.emergencia_telefono'),
+                        {
+                            required: true,
+                            type: 'tel',
+                            max: 30,
+                        },
+                    )}
                 </div>
 
                 <fieldset className="space-y-2">
                     <legend className="mb-2 text-sm font-medium">
-                        Opción de inscripción *
+                        {t('campos.opcion')} *
                     </legend>
                     {encuentro.precios.map((p) => (
                         <label
@@ -409,17 +433,16 @@ function InscripcionForm({
                             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
                         />
                         <span>
-                            Ya pagué (todo o una parte) y tengo el comprobante
+                            {t('ya_pague')}
                             <span className="block text-xs text-muted-foreground">
-                                Si pagas después, podrás mandar el comprobante
-                                desde el enlace de tu inscripción.
+                                {t('ya_pague_detalle')}
                             </span>
                         </span>
                     </label>
                     {data.ya_pague && (
                         <div className="grid gap-3 sm:grid-cols-2">
                             <Field
-                                label="Cuánto pagaste ($)"
+                                label={t('cuanto_pagaste')}
                                 htmlFor="pago_monto"
                                 required
                             >
@@ -438,7 +461,7 @@ function InscripcionForm({
                                 />
                             </Field>
                             <Field
-                                label="Cómo pagaste (opcional)"
+                                label={t('como_pagaste')}
                                 htmlFor="pago_metodo"
                             >
                                 <select
@@ -455,14 +478,14 @@ function InscripcionForm({
                                     <option value="">—</option>
                                     {metodos.map((m) => (
                                         <option key={m} value={m}>
-                                            {m}
+                                            {t(`metodos.${m}`)}
                                         </option>
                                     ))}
                                 </select>
                             </Field>
                             <div className="sm:col-span-2">
                                 <Field
-                                    label="Comprobante (foto o PDF, máx. 10 MB)"
+                                    label={t('comprobante')}
                                     htmlFor="pago_comprobante"
                                     required
                                 >
@@ -493,12 +516,7 @@ function InscripcionForm({
                         }
                         className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
                     />
-                    <span>
-                        Autorizo a Gaia Capoeira – Areia no Mar a usar mis datos
-                        personales solo para gestionar mi inscripción a este
-                        encuentro (Ley 1581 de 2012). Puedo pedir a los
-                        organizadores que los corrijan o los borren. *
-                    </span>
+                    <span>{t('consentimiento')} *</span>
                 </label>
 
                 {/* Trampa para bots: fuera de la vista y del teclado. */}
@@ -524,10 +542,10 @@ function InscripcionForm({
 
                 <SubmitButton
                     processing={form.processing}
-                    pendingLabel="Enviando…"
+                    pendingLabel={t('enviando')}
                     className="w-full sm:w-auto"
                 >
-                    Inscribirme
+                    {t('inscribirme')}
                 </SubmitButton>
             </form>
         </section>

@@ -30,6 +30,11 @@ export interface PrecioOpcion {
     valor: number;
 }
 
+/** Traducciones opcionales de lo que escribe el organizador: {pt: {campo: texto}, en: {…}}. */
+export type Traducciones = Partial<
+    Record<'pt' | 'en', Partial<Record<string, string>>>
+> | null;
+
 /** Una actividad de la programación. Horas "HH:MM" de Colombia. */
 export interface Actividad {
     id: string;
@@ -70,9 +75,13 @@ export interface Encuentro {
     subdominio: 'ninguno' | 'creado' | 'error';
     url: string;
     respaldo_url: string;
-    precios: PrecioOpcion[];
-    actividades: Actividad[];
-    invitados: (Invitado & { foto_url: string | null })[];
+    traducciones: Traducciones;
+    precios: (PrecioOpcion & { traducciones: Traducciones })[];
+    actividades: (Actividad & { traducciones: Traducciones })[];
+    invitados: (Invitado & {
+        foto_url: string | null;
+        traducciones: Traducciones;
+    })[];
 }
 
 /** Inscripción en el panel del organizador. */

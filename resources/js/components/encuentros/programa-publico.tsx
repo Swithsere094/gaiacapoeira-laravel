@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PanelTitle } from '@/components/headings';
 import { formatDate } from '@/lib/dates';
 import { agruparPorDia, formatHorario } from '@/lib/encuentros';
+import { INTL_LOCALES, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Actividad } from '@/types/encuentros';
 
@@ -11,6 +12,7 @@ import type { Actividad } from '@/types/encuentros';
  * y la lista de actividades con su horario.
  */
 export function ProgramaPublico({ actividades }: { actividades: Actividad[] }) {
+    const { t, locale } = useT();
     const dias = agruparPorDia(actividades);
     const [elegido, setElegido] = useState(dias[0]?.[0] ?? '');
     const actual = dias.find(([dia]) => dia === elegido) ?? dias[0];
@@ -21,11 +23,11 @@ export function ProgramaPublico({ actividades }: { actividades: Actividad[] }) {
 
     return (
         <section className="space-y-3">
-            <PanelTitle icon={CalendarClock}>Programación</PanelTitle>
+            <PanelTitle icon={CalendarClock}>{t('programacion')}</PanelTitle>
             {dias.length > 1 && (
                 <div
                     role="tablist"
-                    aria-label="Días del encuentro"
+                    aria-label={t('dias_del_encuentro')}
                     className="flex gap-2 overflow-x-auto pb-1"
                 >
                     {dias.map(([dia]) => (
@@ -42,7 +44,7 @@ export function ProgramaPublico({ actividades }: { actividades: Actividad[] }) {
                                     : 'border-border text-muted-foreground hover:border-primary/60 hover:text-foreground',
                             )}
                         >
-                            {formatDate(dia, 'weekday')}
+                            {formatDate(dia, 'weekday', INTL_LOCALES[locale])}
                         </button>
                     ))}
                 </div>
@@ -50,12 +52,12 @@ export function ProgramaPublico({ actividades }: { actividades: Actividad[] }) {
             <div className="panel p-2 sm:p-3" role="tabpanel">
                 {dias.length === 1 && (
                     <p className="px-3 pt-2 pb-1 text-sm font-medium text-primary">
-                        {formatDate(actual[0], 'weekday')}
+                        {formatDate(actual[0], 'weekday', INTL_LOCALES[locale])}
                     </p>
                 )}
                 <ol className="divide-y divide-border">
                     {actual[1].map((a) => {
-                        const horario = formatHorario(a);
+                        const horario = formatHorario(a, locale);
 
                         return (
                             <li
@@ -63,7 +65,7 @@ export function ProgramaPublico({ actividades }: { actividades: Actividad[] }) {
                                 className="grid gap-1 px-3 py-3 sm:grid-cols-[11rem_1fr] sm:gap-4"
                             >
                                 <span className="text-sm text-muted-foreground tabular-nums">
-                                    {horario || 'Durante el día'}
+                                    {horario || t('durante_el_dia')}
                                 </span>
                                 <span>
                                     <span className="block font-medium text-foreground">

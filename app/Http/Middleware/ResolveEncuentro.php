@@ -3,9 +3,11 @@
 namespace App\Http\Middleware;
 
 use App\Models\Encuentro;
+use App\Support\EncuentroIdioma;
 use App\Support\Permissions;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -18,6 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
  * direcciones de la página (`''` en el subdominio, `/e/slug` en el respaldo),
  * y saca el slug de los parámetros para que no llegue a los controladores.
  * Las respuestas llevan `noindex` (decisión del usuario: no indexar).
+ *
+ * También fija el idioma (EncuentroIdioma) y comparte con las páginas los
+ * textos de la interfaz en ese idioma (`idioma`).
  */
 class ResolveEncuentro
 {
@@ -33,6 +38,14 @@ class ResolveEncuentro
         $request->attributes->set('encuentro', $encuentro);
         $request->attributes->set('encuentro_base', $route->getDomain() ? '' : '/e/'.$encuentro->slug);
         $route->forgetParameter('encuentro');
+
+        app()->setLocale(EncuentroIdioma::detectar($request));
+        // Con closure: la consulta de una inscripción puede cambiar el idioma después.
+        Inertia::share('idioma', fn () => [
+            'actual' => app()->getLocale(),
+            'disponibles' => EncuentroIdioma::LOCALES,
+            'textos' => __('encuentro.ui'),
+        ]);
 
         $response = $next($request);
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');

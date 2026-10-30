@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Traducible;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,7 +23,10 @@ use Illuminate\Support\Carbon;
  */
 class EncuentroPrecio extends Model
 {
-    use HasUuids;
+    use HasUuids, Traducible;
+
+    /** Campos que el organizador puede traducir (portugués e inglés). */
+    public const TRADUCIBLES = ['nombre', 'descripcion'];
 
     protected $table = 'encuentro_precios';
 

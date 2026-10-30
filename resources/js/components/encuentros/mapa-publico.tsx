@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PanelTitle } from '@/components/headings';
 import { Button } from '@/components/ui/button';
 import { mapaEmbedUrl, mapaLinkUrl } from '@/lib/encuentros';
+import { useT } from '@/lib/i18n';
 
 /**
  * Lugar del encuentro con mapa de Google. El mapa se carga solo cuando la
@@ -18,6 +19,7 @@ export function MapaPublico({
     direccion: string | null;
     enlace: string | null;
 }) {
+    const { t } = useT();
     const [abierto, setAbierto] = useState(false);
     const comoLlegar = mapaLinkUrl(direccion, enlace);
 
@@ -27,7 +29,7 @@ export function MapaPublico({
 
     return (
         <section className="space-y-3">
-            <PanelTitle icon={MapPin}>Lugar</PanelTitle>
+            <PanelTitle icon={MapPin}>{t('lugar')}</PanelTitle>
             <div className="space-y-3 panel p-5">
                 <div>
                     {lugar && (
@@ -42,7 +44,7 @@ export function MapaPublico({
                 {direccion &&
                     (abierto ? (
                         <iframe
-                            title={`Mapa: ${lugar ?? direccion}`}
+                            title={t('mapa_de', { lugar: lugar ?? direccion })}
                             src={mapaEmbedUrl(direccion)}
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
@@ -55,9 +57,9 @@ export function MapaPublico({
                             className="flex h-36 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-secondary/30 text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
                         >
                             <MapIcon className="h-8 w-8" />
-                            <span className="font-medium">Ver mapa</span>
+                            <span className="font-medium">{t('ver_mapa')}</span>
                             <span className="text-xs">
-                                Se abre un mapa de Google Maps
+                                {t('ver_mapa_detalle')}
                             </span>
                         </button>
                     ))}
@@ -69,7 +71,7 @@ export function MapaPublico({
                             rel="noopener noreferrer"
                         >
                             <ExternalLink className="h-4 w-4" />
-                            Cómo llegar
+                            {t('como_llegar')}
                         </a>
                     </Button>
                 )}

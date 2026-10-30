@@ -4,7 +4,7 @@ import { IconButton } from '@/components/icon-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import type { Invitado } from '@/types/encuentros';
+import type { Invitado, Traducciones } from '@/types/encuentros';
 
 export interface InvitadoForm {
     id: string | null;
@@ -15,12 +15,13 @@ export interface InvitadoForm {
     bio: string;
     foto: File | null;
     quitar_foto: 0 | 1;
+    traducciones: Traducciones;
     /** Solo para mostrar: la foto guardada o la recién elegida. */
     preview: string | null;
 }
 
 export const toInvitadoForm = (
-    i: Invitado & { foto_url: string | null },
+    i: Invitado & { foto_url: string | null; traducciones: Traducciones },
 ): InvitadoForm => ({
     id: i.id,
     nombre: i.nombre,
@@ -31,6 +32,7 @@ export const toInvitadoForm = (
     foto: null,
     quitar_foto: 0,
     preview: i.foto_url,
+    traducciones: i.traducciones,
 });
 
 /** Lo que viaja al servidor (sin la vista previa). */
@@ -199,6 +201,7 @@ export function InvitadosEditor({
                             foto: null,
                             quitar_foto: 0,
                             preview: null,
+                            traducciones: null,
                         },
                     ])
                 }

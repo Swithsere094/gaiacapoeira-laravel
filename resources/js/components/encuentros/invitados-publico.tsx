@@ -1,5 +1,6 @@
 import { UserRound, Users } from 'lucide-react';
 import { PanelTitle } from '@/components/headings';
+import { useT } from '@/lib/i18n';
 import type { Invitado } from '@/types/encuentros';
 
 /** Invitados en la página pública: tarjeta con foto, título y reseña. */
@@ -8,13 +9,15 @@ export function InvitadosPublico({
 }: {
     invitados: (Invitado & { foto: string | null })[];
 }) {
+    const { t } = useT();
+
     if (invitados.length === 0) {
         return null;
     }
 
     return (
         <section className="space-y-3">
-            <PanelTitle icon={Users}>Invitados</PanelTitle>
+            <PanelTitle icon={Users}>{t('invitados')}</PanelTitle>
             <ul className="grid gap-4 sm:grid-cols-2">
                 {invitados.map((inv) => {
                     const detalle = [inv.grupo, inv.ciudad]
@@ -27,7 +30,9 @@ export function InvitadosPublico({
                                 {inv.foto ? (
                                     <img
                                         src={inv.foto}
-                                        alt={`Foto de ${inv.nombre}`}
+                                        alt={t('foto_de', {
+                                            nombre: inv.nombre,
+                                        })}
                                         loading="lazy"
                                         className="h-full w-full object-cover"
                                     />

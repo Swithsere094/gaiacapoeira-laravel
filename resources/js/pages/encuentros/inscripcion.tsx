@@ -14,10 +14,9 @@ import { formatDate } from '@/lib/dates';
 import {
     formatMoney,
     formatRange,
-    PAGO_LABELS,
     PAGO_REGISTRO_CLASSES,
-    PAGO_REGISTRO_LABELS,
 } from '@/lib/encuentros';
+import { INTL_LOCALES, useT } from '@/lib/i18n';
 import { usePathname } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import type { EncuentroPublico, PagoEstado, PagoRow } from '@/types/encuentros';
@@ -51,6 +50,9 @@ export default function InscripcionPage({
     inscripcion: Inscripcion;
     metodos: string[];
 }) {
+    const { t, locale } = useT();
+    const fecha = (value: string) =>
+        formatDate(value, 'long', INTL_LOCALES[locale]);
     const [copied, setCopied] = useState(false);
     const cancelada = inscripcion.estado === 'cancelada';
     // El token es el último tramo de la dirección (/inscripcion/{token}).
@@ -64,24 +66,28 @@ export default function InscripcionPage({
 
     const filas: [string, string][] = [
         [
-            'Nombre',
+            t('confirmacion.nombre'),
             inscripcion.apelido
                 ? `${inscripcion.nombre} «${inscripcion.apelido}»`
                 : inscripcion.nombre,
         ],
-        ['Grupo', inscripcion.grupo],
-        ['Opción', inscripcion.precio_nombre],
-        ['Valor', formatMoney(inscripcion.precio_valor)],
+        [t('confirmacion.grupo'), inscripcion.grupo],
+        [t('confirmacion.opcion'), inscripcion.precio_nombre],
+        [t('confirmacion.valor'), formatMoney(inscripcion.precio_valor)],
         [
-            'Pago',
-            `${PAGO_LABELS[inscripcion.pago_estado]}${inscripcion.monto_pagado > 0 ? ` · pagado ${formatMoney(inscripcion.monto_pagado)}` : ''}`,
+            t('confirmacion.pago'),
+            `${t(`pago_estados.${inscripcion.pago_estado}`)}${inscripcion.monto_pagado > 0 ? ` · ${t('confirmacion.pagado', { monto: formatMoney(inscripcion.monto_pagado) })}` : ''}`,
         ],
-        ['Falta pagar', formatMoney(inscripcion.saldo)],
-        ['Inscrito el', formatDate(inscripcion.created_at)],
+        [t('confirmacion.falta'), formatMoney(inscripcion.saldo)],
+        [t('confirmacion.fecha'), fecha(inscripcion.created_at)],
     ];
 
     return (
-        <PublicLayout title={`Inscripción · ${encuentro.nombre}`}>
+        <PublicLayout
+            title={t('confirmacion.titulo_pagina', {
+                nombre: encuentro.nombre,
+            })}
+        >
             <div className="mx-auto max-w-xl space-y-6 px-4 py-10 sm:px-6">
                 <div className="text-center">
                     <CheckCircle2
@@ -90,25 +96,28 @@ export default function InscripcionPage({
                     />
                     <h1 className="mt-3 font-serif text-3xl font-bold text-foreground">
                         {cancelada
-                            ? 'Inscripción cancelada'
-                            : '¡Inscripción recibida!'}
+                            ? t('confirmacion.cancelada')
+                            : t('confirmacion.recibida')}
                     </h1>
                     <p className="mt-1 text-muted-foreground">
                         {encuentro.nombre} ·{' '}
-                        {formatRange(encuentro.starts_on, encuentro.ends_on)}
+                        {formatRange(
+                            encuentro.starts_on,
+                            encuentro.ends_on,
+                            locale,
+                        )}
                     </p>
                 </div>
 
                 <div className="panel p-5 text-center">
                     <p className="text-sm text-muted-foreground">
-                        Tu código de inscripción
+                        {t('confirmacion.tu_codigo')}
                     </p>
                     <p className="mt-1 font-mono text-4xl font-bold tracking-widest text-primary">
                         {inscripcion.codigo}
                     </p>
                     <p className="mt-3 text-sm text-muted-foreground">
-                        Tómale una captura a esta pantalla: es tu comprobante de
-                        inscripción.
+                        {t('confirmacion.captura')}
                     </p>
                 </div>
 
@@ -125,13 +134,12 @@ export default function InscripcionPage({
 
                 {encuentro.info_pago && !cancelada && inscripcion.saldo > 0 && (
                     <section className="space-y-2 panel p-5">
-                        <PanelTitle icon={Wallet}>Datos de pago</PanelTitle>
+                        <PanelTitle icon={Wallet}>{t('datos_pago')}</PanelTitle>
                         <p className="text-sm whitespace-pre-line text-foreground">
                             {encuentro.info_pago}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                            Cuando pagues, sube el comprobante aquí abajo o
-                            mándaselo a los organizadores con tu código{' '}
+                            {t('confirmacion.info_pago_ayuda')}{' '}
                             <span className="font-mono whitespace-nowrap">
                                 {inscripcion.codigo}
                             </span>
@@ -144,7 +152,7 @@ export default function InscripcionPage({
 
                 {inscripcion.pagos.length > 0 && (
                     <section className="space-y-2 panel p-5">
-                        <PanelTitle>Tus pagos</PanelTitle>
+                        <PanelTitle>{t('confirmacion.tus_pagos')}</PanelTitle>
                         <ul className="divide-y divide-border text-sm">
                             {inscripcion.pagos.map((p) => (
                                 <li
@@ -155,8 +163,9 @@ export default function InscripcionPage({
                                         {formatMoney(p.monto)}
                                     </span>
                                     <span className="text-muted-foreground">
-                                        {formatDate(p.fecha)}
-                                        {p.metodo && ` · ${p.metodo}`}
+                                        {fecha(p.fecha)}
+                                        {p.metodo &&
+                                            ` · ${t(`metodos.${p.metodo}`)}`}
                                     </span>
                                     <span
                                         className={cn(
@@ -164,7 +173,7 @@ export default function InscripcionPage({
                                             PAGO_REGISTRO_CLASSES[p.estado],
                                         )}
                                     >
-                                        {PAGO_REGISTRO_LABELS[p.estado]}
+                                        {t(`registro_estados.${p.estado}`)}
                                     </span>
                                 </li>
                             ))}
@@ -173,8 +182,7 @@ export default function InscripcionPage({
                             (p) => p.estado === 'reportado',
                         ) && (
                             <p className="text-xs text-muted-foreground">
-                                Los pagos "por revisar" se suman cuando los
-                                organizadores los confirman.
+                                {t('confirmacion.por_revisar_ayuda')}
                             </p>
                         )}
                     </section>
@@ -189,10 +197,11 @@ export default function InscripcionPage({
                 )}
 
                 <section className="space-y-2 panel p-5">
-                    <PanelTitle>Volver a consultar tu inscripción</PanelTitle>
+                    <PanelTitle>
+                        {t('confirmacion.volver_consultar')}
+                    </PanelTitle>
                     <p className="text-sm text-muted-foreground">
-                        Este enlace es privado: guárdalo para ver más adelante
-                        el estado de tu pago.
+                        {t('confirmacion.enlace_privado')}
                     </p>
                     <Button
                         type="button"
@@ -201,14 +210,16 @@ export default function InscripcionPage({
                         onClick={() => void copiar()}
                     >
                         <Copy className="h-4 w-4" />
-                        {copied ? '¡Enlace copiado!' : 'Copiar el enlace'}
+                        {copied
+                            ? t('confirmacion.copiado')
+                            : t('confirmacion.copiar')}
                     </Button>
                 </section>
 
                 <div className="text-center">
                     <Button asChild variant="ghost">
                         <Link href={encuentro.base || '/'}>
-                            Volver a la página del encuentro
+                            {t('confirmacion.volver_pagina')}
                         </Link>
                     </Button>
                 </div>
@@ -227,6 +238,7 @@ function ReportarPago({
     saldo: number;
     metodos: string[];
 }) {
+    const { t } = useT();
     const form = useForm({
         monto: saldo.toString(),
         metodo: '',
@@ -245,11 +257,13 @@ function ReportarPago({
 
     return (
         <section className="space-y-3 panel p-5">
-            <PanelTitle icon={Upload}>Mandar un comprobante de pago</PanelTitle>
+            <PanelTitle icon={Upload}>
+                {t('confirmacion.mandar_titulo')}
+            </PanelTitle>
             <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
-                        <Label htmlFor="monto">Cuánto pagaste ($) *</Label>
+                        <Label htmlFor="monto">{t('cuanto_pagaste')} *</Label>
                         <Input
                             id="monto"
                             type="number"
@@ -263,7 +277,7 @@ function ReportarPago({
                         />
                     </div>
                     <div className="space-y-1">
-                        <Label htmlFor="metodo">Cómo pagaste (opcional)</Label>
+                        <Label htmlFor="metodo">{t('como_pagaste')}</Label>
                         <select
                             id="metodo"
                             value={form.data.metodo}
@@ -275,16 +289,14 @@ function ReportarPago({
                             <option value="">—</option>
                             {metodos.map((m) => (
                                 <option key={m} value={m}>
-                                    {m}
+                                    {t(`metodos.${m}`)}
                                 </option>
                             ))}
                         </select>
                     </div>
                 </div>
                 <div className="space-y-1">
-                    <Label htmlFor="comprobante">
-                        Comprobante (foto o PDF, máx. 10 MB) *
-                    </Label>
+                    <Label htmlFor="comprobante">{t('comprobante')} *</Label>
                     <input
                         id="comprobante"
                         type="file"
@@ -301,9 +313,9 @@ function ReportarPago({
                 <FormError message={Object.values(form.errors)[0]} />
                 <SubmitButton
                     processing={form.processing}
-                    pendingLabel="Enviando…"
+                    pendingLabel={t('enviando')}
                 >
-                    Mandar comprobante
+                    {t('confirmacion.mandar')}
                 </SubmitButton>
             </form>
         </section>

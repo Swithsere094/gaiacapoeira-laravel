@@ -11,6 +11,7 @@ import {
     ProgramaEditor,
     toActividadForm,
 } from '@/components/encuentros/programa-editor';
+import { TraduccionesEditor } from '@/components/encuentros/traducciones-editor';
 import { FormActions } from '@/components/form-actions';
 import { FormError } from '@/components/form-error';
 import { PanelTitle } from '@/components/headings';
@@ -22,13 +23,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { diasDelEncuentro } from '@/lib/encuentros';
-import type { Encuentro } from '@/types/encuentros';
+import type { Encuentro, Traducciones } from '@/types/encuentros';
 
 interface PrecioForm {
     id: string | null;
     nombre: string;
     descripcion: string;
     valor: string;
+    traducciones: Traducciones;
 }
 
 const NUEVO_PRECIO: PrecioForm = {
@@ -36,6 +38,7 @@ const NUEVO_PRECIO: PrecioForm = {
     nombre: '',
     descripcion: '',
     valor: '',
+    traducciones: null,
 };
 
 /** Crear o editar un encuentro (permiso `encuentros.gestionar`). */
@@ -65,9 +68,11 @@ export default function EncuentroFormPage({
             nombre: p.nombre,
             descripcion: p.descripcion ?? '',
             valor: p.valor.toString(),
+            traducciones: p.traducciones,
         })),
         actividades: (encuentro?.actividades ?? []).map(toActividadForm),
         invitados: (encuentro?.invitados ?? []).map(toInvitadoForm),
+        traducciones: encuentro?.traducciones ?? null,
         portada: null as File | null,
         quitar_portada: 0,
     });
@@ -442,6 +447,17 @@ export default function EncuentroFormPage({
                     onChange={(invitados) =>
                         form.setData('invitados', invitados)
                     }
+                />
+
+                <TraduccionesEditor
+                    encuentro={data}
+                    precios={data.precios}
+                    actividades={data.actividades}
+                    invitados={data.invitados}
+                    onEncuentro={(t) => form.setData('traducciones', t)}
+                    onPrecios={(p) => form.setData('precios', p)}
+                    onActividades={(a) => form.setData('actividades', a)}
+                    onInvitados={(i) => form.setData('invitados', i)}
                 />
 
                 {/* Pago */}

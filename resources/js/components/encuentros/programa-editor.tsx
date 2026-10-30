@@ -4,7 +4,7 @@ import { IconButton } from '@/components/icon-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatDate } from '@/lib/dates';
-import type { Actividad } from '@/types/encuentros';
+import type { Actividad, Traducciones } from '@/types/encuentros';
 
 export interface ActividadForm {
     id: string | null;
@@ -13,15 +13,19 @@ export interface ActividadForm {
     hora_fin: string;
     titulo: string;
     descripcion: string;
+    traducciones: Traducciones;
 }
 
-export const toActividadForm = (a: Actividad): ActividadForm => ({
+export const toActividadForm = (
+    a: Actividad & { traducciones: Traducciones },
+): ActividadForm => ({
     id: a.id,
     fecha: a.fecha,
     hora_inicio: a.hora_inicio ?? '',
     hora_fin: a.hora_fin ?? '',
     titulo: a.titulo,
     descripcion: a.descripcion ?? '',
+    traducciones: a.traducciones,
 });
 
 /**
@@ -58,6 +62,7 @@ export function ProgramaEditor({
                 hora_fin: '',
                 titulo: '',
                 descripcion: '',
+                traducciones: null,
             },
         ]);
     };

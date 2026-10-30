@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Traducible;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -25,7 +26,10 @@ use Illuminate\Support\Carbon;
  */
 class EncuentroActividad extends Model
 {
-    use HasUuids;
+    use HasUuids, Traducible;
+
+    /** Campos que el organizador puede traducir (portugués e inglés). */
+    public const TRADUCIBLES = ['titulo', 'descripcion'];
 
     protected $table = 'encuentro_actividades';
 
@@ -40,7 +44,7 @@ class EncuentroActividad extends Model
     }
 
     /** @return array{id: string, fecha: string, hora_inicio: string|null, hora_fin: string|null, titulo: string, descripcion: string|null} */
-    public function toPublicArray(): array
+    public function toPublicArray(string $locale = 'es'): array
     {
         return [
             'id' => $this->id,
@@ -48,8 +52,8 @@ class EncuentroActividad extends Model
             // "14:30:00" → "14:30"
             'hora_inicio' => $this->hora_inicio ? substr($this->hora_inicio, 0, 5) : null,
             'hora_fin' => $this->hora_fin ? substr($this->hora_fin, 0, 5) : null,
-            'titulo' => $this->titulo,
-            'descripcion' => $this->descripcion,
+            'titulo' => (string) $this->traducido('titulo', $locale),
+            'descripcion' => $this->traducido('descripcion', $locale),
         ];
     }
 }

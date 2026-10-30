@@ -8,6 +8,7 @@ use App\Models\EncuentroInvitado;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
 use App\Support\ClientIp;
+use App\Support\EncuentroIdioma;
 use App\Support\EventCalendar;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
@@ -39,19 +40,20 @@ class EncuentroPublicoController extends Controller
         $encuentro = $this->encuentro($request);
         $encuentro->load('precios', 'actividades', 'invitados');
         $base = (string) $request->attributes->get('encuentro_base');
+        $locale = app()->getLocale();
 
         return Inertia::render('encuentros/publico', [
             'encuentro' => [
                 ...$this->present($encuentro, $request),
                 'direccion' => $encuentro->direccion,
-                'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray())->values(),
+                'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray($locale))->values(),
                 'invitados' => $encuentro->invitados->map(fn (EncuentroInvitado $i) => [
                     'id' => $i->id,
                     'nombre' => $i->nombre,
                     'titulo' => $i->titulo,
                     'grupo' => $i->grupo,
                     'ciudad' => $i->ciudad,
-                    'bio' => $i->bio,
+                    'bio' => $i->traducido('bio', $locale),
                     'foto' => $i->foto_url ? "{$base}/invitados/{$i->id}/foto" : null,
                 ])->values(),
             ],
@@ -74,11 +76,11 @@ class EncuentroPublicoController extends Controller
 
         $key = 'inscripcion:'.ClientIp::for($request);
         if (RateLimiter::tooManyAttempts($key, self::LIMIT)) {
-            throw ValidationException::withMessages(['nombre' => 'Demasiadas inscripciones seguidas desde esta conexión. Intenta de nuevo en unos minutos.']);
+            throw ValidationException::withMessages(['nombre' => __('encuentro.validacion.demasiadas_inscripciones')]);
         }
 
         if ($encuentro->motivoCierre(EventCalendar::today()) !== null) {
-            throw ValidationException::withMessages(['nombre' => 'Las inscripciones de este encuentro no están abiertas.']);
+            throw ValidationException::withMessages(['nombre' => __('encuentro.validacion.no_abiertas')]);
         }
 
         $data = $request->validate([
@@ -99,23 +101,7 @@ class EncuentroPublicoController extends Controller
             'consentimiento' => ['accepted'],
             // "Ya pagué": opcional; si lo marca, monto y comprobante son obligatorios.
             ...$this->pagoRules($request->boolean('ya_pague'), 'pago_'),
-        ], [
-            ...$this->pagoMensajes('pago_'),
-            'nombre.required' => 'Escribe tu nombre completo',
-            'grupo.required' => 'Escribe tu grupo',
-            'ciudad.required' => 'Escribe tu ciudad',
-            'telefono.required' => 'Escribe tu teléfono',
-            'telefono.regex' => 'El teléfono solo puede tener números, espacios y el signo +',
-            'email.email' => 'El correo no es válido',
-            'corte.required_with' => 'Elige el corte de la camiseta (masculino o femenino)',
-            'corte.in' => 'Elige el corte de la camiseta (masculino o femenino)',
-            'emergencia_nombre.required' => 'Escribe un contacto de emergencia',
-            'emergencia_telefono.required' => 'Escribe el teléfono del contacto de emergencia',
-            'emergencia_telefono.regex' => 'El teléfono de emergencia solo puede tener números, espacios y el signo +',
-            'precio_id.required' => 'Elige una opción de inscripción',
-            'precio_id.exists' => 'Elige una opción de inscripción',
-            'consentimiento.accepted' => 'Para inscribirte tienes que autorizar el tratamiento de tus datos',
-        ]);
+        ], $this->mensajes('pago_'));
 
         RateLimiter::hit($key, self::WINDOW_SECONDS);
 
@@ -129,7 +115,7 @@ class EncuentroPublicoController extends Controller
             'precio_nombre' => $precio->nombre,
             'precio_valor' => $precio->valor,
             'consentimiento_at' => now(),
-            'locale' => 'es',
+            'locale' => app()->getLocale(),
         ]);
 
         if ($request->boolean('ya_pague')) {
@@ -150,16 +136,16 @@ class EncuentroPublicoController extends Controller
 
         $key = 'inscripcion:'.ClientIp::for($request);
         if (RateLimiter::tooManyAttempts($key, self::LIMIT)) {
-            throw ValidationException::withMessages(['monto' => 'Demasiados envíos seguidos desde esta conexión. Intenta de nuevo en unos minutos.']);
+            throw ValidationException::withMessages(['monto' => __('encuentro.validacion.demasiados_envios')]);
         }
 
         abort_if($inscripcion->estado !== Inscripcion::ACTIVA, 404);
 
-        $request->validate($this->pagoRules(true), $this->pagoMensajes());
+        $request->validate($this->pagoRules(true), $this->mensajes());
         RateLimiter::hit($key, self::WINDOW_SECONDS);
         $this->reportar($request, $inscripcion);
 
-        return back()->with('success', 'Recibimos tu pago. Los organizadores lo van a revisar.');
+        return back()->with('success', __('encuentro.flash.pago_recibido'));
     }
 
     /** Confirmación y consulta posterior, con el enlace privado. */
@@ -167,6 +153,11 @@ class EncuentroPublicoController extends Controller
     {
         $encuentro = $this->encuentro($request);
         $inscripcion = $encuentro->inscripciones()->where('token', $token)->firstOrFail();
+
+        // Si la persona no eligió otro, el idioma en que se inscribió.
+        if (EncuentroIdioma::elegido($request) === null && in_array($inscripcion->locale, EncuentroIdioma::LOCALES, true)) {
+            app()->setLocale($inscripcion->locale);
+        }
 
         return Inertia::render('encuentros/inscripcion', [
             'encuentro' => $this->present($encuentro, $request),
@@ -215,12 +206,23 @@ class EncuentroPublicoController extends Controller
         ];
     }
 
-    /** @return array<string, string> */
-    private function pagoMensajes(string $prefijo = ''): array
+    /**
+     * Mensajes de validación en el idioma de la página. Los del pago se
+     * repiten con `$prefijoPago` ('pago_' en el formulario de inscripción).
+     *
+     * @return array<string, string>
+     */
+    private function mensajes(string $prefijoPago = ''): array
     {
-        $mensajes = [];
-        foreach (PagoController::mensajes() as $key => $text) {
-            $mensajes[$prefijo.$key] = $text;
+        /** @var array<string, string> $mensajes */
+        $mensajes = __('encuentro.validacion');
+
+        if ($prefijoPago !== '') {
+            foreach ($mensajes as $key => $text) {
+                if (preg_match('/^(monto|metodo|nota|comprobante)\./', $key)) {
+                    $mensajes[$prefijoPago.$key] = $text;
+                }
+            }
         }
 
         return $mensajes;
@@ -273,15 +275,16 @@ class EncuentroPublicoController extends Controller
     private function present(Encuentro $encuentro, Request $request): array
     {
         $base = (string) $request->attributes->get('encuentro_base');
+        $locale = app()->getLocale();
 
         return [
-            'nombre' => $encuentro->nombre,
+            'nombre' => (string) $encuentro->traducido('nombre', $locale),
             'starts_on' => $encuentro->starts_on->toDateString(),
             'ends_on' => $encuentro->ends_on?->toDateString(),
             'lugar' => $encuentro->lugar,
             'mapa_url' => $encuentro->mapa_url,
-            'descripcion' => $encuentro->descripcion,
-            'info_pago' => $encuentro->info_pago,
+            'descripcion' => $encuentro->traducido('descripcion', $locale),
+            'info_pago' => $encuentro->traducido('info_pago', $locale),
             'portada' => $encuentro->portada_url ? $base.'/portada' : null,
             'inscripciones_hasta' => $encuentro->inscripciones_hasta?->toDateString(),
             'inscripciones_desde' => $encuentro->inscripciones_desde?->toDateString(),
@@ -289,8 +292,8 @@ class EncuentroPublicoController extends Controller
             'base' => $base,
             'precios' => $encuentro->precios->map(fn ($p) => [
                 'id' => $p->id,
-                'nombre' => $p->nombre,
-                'descripcion' => $p->descripcion,
+                'nombre' => (string) $p->traducido('nombre', $locale),
+                'descripcion' => $p->traducido('descripcion', $locale),
                 'valor' => $p->valor,
             ])->values(),
         ];

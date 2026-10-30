@@ -1,4 +1,6 @@
 import { formatDate } from '@/lib/dates';
+import { INTL_LOCALES } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 import type {
     Actividad,
     EncuentroEstado,
@@ -16,10 +18,16 @@ export function formatMoney(value: number): string {
 }
 
 /** "2 de julio de 2027" o "2 de julio de 2027 – 4 de julio de 2027". */
-export function formatRange(start: string, end: string | null): string {
+export function formatRange(
+    start: string,
+    end: string | null,
+    locale: Locale = 'es',
+): string {
+    const intl = INTL_LOCALES[locale];
+
     return end && end !== start
-        ? `${formatDate(start)} – ${formatDate(end)}`
-        : formatDate(start);
+        ? `${formatDate(start, 'long', intl)} – ${formatDate(end, 'long', intl)}`
+        : formatDate(start, 'long', intl);
 }
 
 /** Días del encuentro (Y-m-d), del inicio al fin. Máximo 60 por las dudas. */
@@ -47,9 +55,18 @@ export function diasDelEncuentro(start: string, end: string | null): string[] {
 /** "8:00 a. m. – 12:00 p. m." en formato de 12 horas, o '' sin hora. */
 export function formatHorario(
     a: Pick<Actividad, 'hora_inicio' | 'hora_fin'>,
+    locale: Locale = 'es',
 ): string {
     const hora = (value: string) => {
         const [h, min] = value.split(':').map(Number);
+        if (locale !== 'es') {
+            // pt: "08:00"; en: "8:00 AM". En UTC para que no lo mueva el huso.
+            return new Intl.DateTimeFormat(INTL_LOCALES[locale], {
+                hour: 'numeric',
+                minute: '2-digit',
+                timeZone: 'UTC',
+            }).format(Date.UTC(2000, 0, 1, h, min));
+        }
         const sufijo = h < 12 ? 'a. m.' : 'p. m.';
 
         return `${h % 12 || 12}:${String(min).padStart(2, '0')} ${sufijo}`;
