@@ -270,7 +270,7 @@ function ReportarPago({
                             id="monto"
                             type="number"
                             min={1}
-                            step={1000}
+                            step={1}
                             value={form.data.monto}
                             onChange={(e) =>
                                 form.setData('monto', e.target.value)

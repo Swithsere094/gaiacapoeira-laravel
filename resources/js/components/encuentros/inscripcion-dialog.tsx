@@ -260,7 +260,7 @@ export function InscripcionDialog({
                                 id="pago-monto"
                                 type="number"
                                 min={1}
-                                step={1000}
+                                step={1}
                                 value={pago.data.monto}
                                 onChange={(e) =>
                                     pago.setData('monto', e.target.value)

@@ -472,7 +472,7 @@ function InscripcionForm({
                                     id="pago_monto"
                                     type="number"
                                     min={1}
-                                    step={1000}
+                                    step={1}
                                     value={data.pago_monto}
                                     onChange={(e) =>
                                         form.setData(

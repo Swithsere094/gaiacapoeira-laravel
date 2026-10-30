@@ -392,7 +392,7 @@ export default function EncuentroFormPage({
                                 aria-label={`Valor de la opción ${i + 1} en pesos`}
                                 type="number"
                                 min={0}
-                                step={1000}
+                                step={1}
                                 value={p.valor}
                                 onChange={(e) =>
                                     setPrecio(i, 'valor', e.target.value)
