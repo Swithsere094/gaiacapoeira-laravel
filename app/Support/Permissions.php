@@ -39,6 +39,9 @@ final class Permissions
     /** Revisiones y Personas (nunca sobre el árbol propio, salvo el admin). */
     public const RETOS_REVISAR = 'retos.revisar';
 
+    /** Encuentros (batizados…): crear, publicar e inscripciones y pagos. */
+    public const ENCUENTROS_GESTIONAR = 'encuentros.gestionar';
+
     public const ALL = [
         self::ANALITICAS_VER,
         self::GALERA_GESTIONAR,
@@ -49,5 +52,6 @@ final class Permissions
         self::RETOS_ENTRENAR,
         self::RETOS_ARBOL,
         self::RETOS_REVISAR,
+        self::ENCUENTROS_GESTIONAR,
     ];
 }

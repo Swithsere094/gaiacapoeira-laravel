@@ -1,15 +1,16 @@
 <?php
 
 use App\Http\Controllers\Admin\AnalyticsController;
-use App\Http\Controllers\Admin\EventoPruebaController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ArbolController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\EncuentroController;
+use App\Http\Controllers\EncuentroPublicoController;
 use App\Http\Controllers\EventoController;
-use App\Http\Controllers\EventoPruebaPaginaController;
 use App\Http\Controllers\GaleraController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
@@ -18,21 +19,35 @@ use App\Http\Controllers\RetoDemoController;
 use App\Http\Controllers\RevisionController;
 use App\Http\Controllers\SongController;
 use App\Http\Controllers\UploadController;
-use App\Http\Middleware\ResolveEventoPrueba;
-use App\Models\EventoPrueba;
+use App\Http\Middleware\ResolveEncuentro;
+use App\Models\Encuentro;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
 
-// ── Subdominios de eventos de prueba ({slug}.gaiacapoeira.com) ───────
-// Van ANTES que el resto: las demás rutas no tienen dominio y atienden
-// cualquier host. El patrón deja afuera los subdominios reservados (www,
-// mail…), que siguen yendo al sitio principal. Página pública.
-Route::domain('{evento}.'.config('services.hostinger.domain'))
-    ->where(['evento' => '(?!(?:'.implode('|', EventoPrueba::RESERVADOS).')\.)[a-z0-9-]{3,63}'])
-    ->middleware(ResolveEventoPrueba::class)
-    ->group(function () {
-        Route::get('/', EventoPruebaPaginaController::class)->name('eventos-prueba.subdominio');
-    });
+// ── Encuentros: páginas públicas (sin sesión) ────────────────────────
+// En el subdominio ({slug}.gaiacapoeira.com) y, de respaldo, en /e/{slug}
+// (también sirve para previsualizar un borrador con sesión). El grupo por
+// subdominio va ANTES que el resto: las demás rutas no tienen dominio y
+// atienden cualquier host. El patrón deja afuera los subdominios
+// reservados (www, mail…), que siguen yendo al sitio principal.
+$encuentroPublico = function () {
+    Route::get('/', [EncuentroPublicoController::class, 'show'])->name('pagina');
+    Route::post('inscripcion', [EncuentroPublicoController::class, 'store'])->name('inscribir');
+    Route::get('inscripcion/{token}', [EncuentroPublicoController::class, 'consulta'])->where('token', '[A-Za-z0-9]{20,64}')->name('consulta');
+    Route::get('portada', [EncuentroPublicoController::class, 'portada'])->name('portada');
+};
+
+Route::domain('{encuentro}.'.config('services.hostinger.domain'))
+    ->where(['encuentro' => '(?!(?:'.implode('|', Encuentro::RESERVADOS).')\.)[a-z0-9-]{3,63}'])
+    ->middleware(ResolveEncuentro::class)
+    ->name('encuentro.subdominio.')
+    ->group($encuentroPublico);
+
+Route::prefix('e/{encuentro}')
+    ->where(['encuentro' => '[a-z0-9-]{3,63}'])
+    ->middleware(ResolveEncuentro::class)
+    ->name('encuentro.respaldo.')
+    ->group($encuentroPublico);
 
 // ── Público (sin sesión) ─────────────────────────────────────────────
 Route::middleware('guest')->prefix('auth')->group(function () {
@@ -43,10 +58,6 @@ Route::middleware('guest')->prefix('auth')->group(function () {
 // "Olvidé mi contraseña" ya no existe (lo resuelve un admin): la dirección
 // vieja lleva al login, que explica qué hacer.
 Route::get('auth/olvide-contrasena', fn () => redirect('/auth/login'));
-
-// Página de un evento de prueba sin depender del subdominio (respaldo).
-Route::get('eventos-prueba/{evento}', EventoPruebaPaginaController::class)
-    ->middleware(ResolveEventoPrueba::class)->name('eventos-prueba.show');
 
 // ── Todo lo demás requiere sesión ────────────────────────────────────
 Route::middleware('auth')->group(function () {
@@ -113,6 +124,23 @@ Route::middleware('auth')->group(function () {
 
     Route::get('admin/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics')->middleware('can:'.Permissions::ANALITICAS_VER);
 
+    // Encuentros: gestión (la página pública está arriba, sin sesión).
+    // Con archivo (portada), editar va como POST + _method=PUT.
+    Route::middleware('can:'.Permissions::ENCUENTROS_GESTIONAR)->prefix('encuentros')->group(function () {
+        Route::get('/', [EncuentroController::class, 'index'])->name('encuentros');
+        Route::get('nuevo', [EncuentroController::class, 'create'])->name('encuentros.nuevo');
+        Route::post('/', [EncuentroController::class, 'store']);
+        Route::get('{encuentro}', [EncuentroController::class, 'show'])->whereUuid('encuentro')->name('encuentros.show');
+        Route::get('{encuentro}/editar', [EncuentroController::class, 'edit'])->whereUuid('encuentro');
+        Route::put('{encuentro}', [EncuentroController::class, 'update'])->whereUuid('encuentro');
+        Route::delete('{encuentro}', [EncuentroController::class, 'destroy'])->whereUuid('encuentro');
+        Route::post('{encuentro}/publicar', [EncuentroController::class, 'publish'])->whereUuid('encuentro')->middleware('throttle:10,1');
+        Route::post('{encuentro}/despublicar', [EncuentroController::class, 'unpublish'])->whereUuid('encuentro');
+        Route::post('{encuentro}/inscripciones-abiertas', [EncuentroController::class, 'toggleInscripciones'])->whereUuid('encuentro');
+        Route::get('{encuentro}/exportar', [InscripcionController::class, 'export'])->whereUuid('encuentro');
+        Route::put('{encuentro}/inscripciones/{inscripcion}', [InscripcionController::class, 'update'])->whereUuid(['encuentro', 'inscripcion']);
+    });
+
     // ── Solo administradores: usuarios y roles ───────────────────────
     // No son permisos asignables: así nadie puede darse más permisos.
     Route::middleware('admin')->group(function () {
@@ -126,11 +154,6 @@ Route::middleware('auth')->group(function () {
             Route::post('usuarios', [UserController::class, 'store']);
             Route::put('usuarios/{user}', [UserController::class, 'update']);
             Route::delete('usuarios/{user}', [UserController::class, 'destroy']);
-
-            // Prueba de concepto: subdominios por evento con la API de Hostinger.
-            Route::get('eventos-prueba', [EventoPruebaController::class, 'index'])->name('admin.eventos-prueba');
-            Route::post('eventos-prueba', [EventoPruebaController::class, 'store'])->middleware('throttle:10,1');
-            Route::delete('eventos-prueba/{eventoPrueba}', [EventoPruebaController::class, 'destroy'])->whereUuid('eventoPrueba');
         });
     });
 

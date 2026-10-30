@@ -22,7 +22,8 @@ export type Permission =
     | 'eventos.gestionar'
     | 'retos.entrenar'
     | 'retos.arbol'
-    | 'retos.revisar';
+    | 'retos.revisar'
+    | 'encuentros.gestionar';
 
 export interface Auth {
     user: AppUser | null;

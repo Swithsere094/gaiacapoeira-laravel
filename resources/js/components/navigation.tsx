@@ -12,6 +12,7 @@ import {
     BarChart3,
     KeyRound,
     CalendarDays,
+    Ticket,
     Trophy,
 } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
@@ -62,6 +63,12 @@ export function Navigation() {
             label: 'Gestionar roles',
             icon: KeyRound,
             show: isAdmin,
+        },
+        {
+            href: '/encuentros',
+            label: 'Encuentros',
+            icon: Ticket,
+            show: can('encuentros.gestionar'),
         },
         {
             href: '/admin/analytics',
