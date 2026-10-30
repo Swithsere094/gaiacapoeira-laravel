@@ -49,6 +49,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, EncuentroActividad> $actividades
  * @property-read Collection<int, EncuentroInvitado> $invitados
  * @property-read Collection<int, EncuentroFoto> $fotos
+ * @property-read Collection<int, EncuentroMovimiento> $movimientos
  * @property-read Evento|null $evento
  * @property-read int|null $inscripciones_count Con withCount('inscripciones').
  */
@@ -126,6 +127,16 @@ class Encuentro extends Model
     public function fotos(): HasMany
     {
         return $this->hasMany(EncuentroFoto::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Contabilidad: gastos y otros ingresos anotados a mano, por fecha.
+     *
+     * @return HasMany<EncuentroMovimiento, $this>
+     */
+    public function movimientos(): HasMany
+    {
+        return $this->hasMany(EncuentroMovimiento::class)->orderBy('fecha')->orderBy('created_at');
     }
 
     /** @return HasMany<Inscripcion, $this> */

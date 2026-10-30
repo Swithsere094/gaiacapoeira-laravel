@@ -146,3 +146,18 @@ export interface EncuentroPublico {
     actividades?: Actividad[];
     invitados?: (Invitado & { foto: string | null })[];
 }
+
+/** Gasto u otro ingreso anotado a mano en la contabilidad de un encuentro. */
+export interface Movimiento {
+    id: string;
+    tipo: 'ingreso' | 'gasto';
+    fecha: string;
+    concepto: string;
+    categoria: string;
+    monto: number;
+    metodo: string | null;
+    nota: string | null;
+    /** Dirección del comprobante (privada, solo quien gestiona). */
+    comprobante: string | null;
+    anotado_por: string | null;
+}

@@ -20,6 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { useConfirm } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
+import { EncuentroTabs } from '@/components/encuentros/encuentro-tabs';
 import { InscripcionDialog } from '@/components/encuentros/inscripcion-dialog';
 import { FlashMessage } from '@/components/flash-message';
 import { SectionTitle } from '@/components/headings';
@@ -212,6 +213,12 @@ export default function EncuentroShowPage({
                             </Link>
                         </Button>
                     }
+                />
+            }
+            tabs={
+                <EncuentroTabs
+                    encuentroId={encuentro.id}
+                    activa="inscripciones"
                 />
             }
         >

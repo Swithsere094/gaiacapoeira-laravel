@@ -6,6 +6,7 @@ use App\Models\Encuentro;
 use App\Models\EncuentroActividad;
 use App\Models\EncuentroFoto;
 use App\Models\EncuentroInvitado;
+use App\Models\EncuentroMovimiento;
 use App\Models\EncuentroPrecio;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
@@ -303,6 +304,7 @@ class EncuentroController extends Controller
         Uploads::delete($encuentro->portada_url);
         $encuentro->invitados->each(fn (EncuentroInvitado $i) => Uploads::delete($i->foto_url));
         $encuentro->fotos->each(fn (EncuentroFoto $f) => EncuentroFotoController::borrarArchivos($f));
+        $encuentro->movimientos->each(fn (EncuentroMovimiento $m) => Uploads::delete($m->comprobante_url));
         $encuentro->delete();
 
         return redirect('/encuentros')->with('success', "Encuentro «{$encuentro->nombre}» eliminado.");
