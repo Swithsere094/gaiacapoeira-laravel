@@ -64,7 +64,7 @@ return [
         'cuanto_pagaste' => 'Cuánto pagaste ($)',
         'como_pagaste' => 'Cómo pagaste (opcional)',
         'comprobante' => 'Comprobante (foto o PDF, máx. 10 MB)',
-        'consentimiento' => 'Autorizo a Gaia Capoeira – Areia no Mar a usar mis datos personales solo para gestionar mi inscripción a este encuentro (Ley 1581 de 2012 de Colombia). Puedo pedir a los organizadores que los corrijan o los borren.',
+        'consentimiento' => 'Autorizo a Gaia Capoeira a usar mis datos personales solo para gestionar mi inscripción a este encuentro (Ley 1581 de 2012 de Colombia). Puedo pedir a los organizadores que los corrijan o los borren.',
         'enviando' => 'Enviando…',
         'inscribirme' => 'Inscribirme',
         'confirmacion' => [

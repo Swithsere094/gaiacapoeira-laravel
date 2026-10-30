@@ -1,5 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { CalendarDays, Lock, MapPin, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { GaleriaPublica } from '@/components/encuentros/galeria-publica';
 import { InvitadosPublico } from '@/components/encuentros/invitados-publico';
@@ -239,6 +240,9 @@ function InscripcionForm({
     const { t, locale } = useT();
     const { data } = form;
     const elegido = encuentro.precios.find((p) => p.id === data.precio_id);
+    // "Cuánto pagaste" sigue el valor de la opción elegida (supone el pago
+    // completo) hasta que la persona lo escribe a mano.
+    const [montoEditado, setMontoEditado] = useState(false);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -415,7 +419,15 @@ function InscripcionForm({
                                 name="precio_id"
                                 value={p.id}
                                 checked={data.precio_id === p.id}
-                                onChange={() => form.setData('precio_id', p.id)}
+                                onChange={() =>
+                                    form.setData((d) => ({
+                                        ...d,
+                                        precio_id: p.id,
+                                        pago_monto: montoEditado
+                                            ? d.pago_monto
+                                            : p.valor.toString(),
+                                    }))
+                                }
                                 className="mt-1 h-4 w-4 accent-[var(--primary)]"
                             />
                             <span className="flex-1">
@@ -446,10 +458,9 @@ function InscripcionForm({
                                     ya_pague: e.target.checked,
                                     // Propone el valor de la opción elegida.
                                     pago_monto:
-                                        d.pago_monto ||
-                                        (elegido
-                                            ? elegido.valor.toString()
-                                            : ''),
+                                        montoEditado || !elegido
+                                            ? d.pago_monto
+                                            : elegido.valor.toString(),
                                 }))
                             }
                             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
@@ -474,12 +485,14 @@ function InscripcionForm({
                                     min={1}
                                     step={1}
                                     value={data.pago_monto}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        // Si lo borra, vuelve a seguir la opción elegida.
+                                        setMontoEditado(e.target.value !== '');
                                         form.setData(
                                             'pago_monto',
                                             e.target.value,
-                                        )
-                                    }
+                                        );
+                                    }}
                                 />
                             </Field>
                             <Field

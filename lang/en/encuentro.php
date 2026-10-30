@@ -61,7 +61,7 @@ return [
         'cuanto_pagaste' => 'How much you paid (COP $)',
         'como_pagaste' => 'How you paid (optional)',
         'comprobante' => 'Receipt (photo or PDF, max. 10 MB)',
-        'consentimiento' => 'I authorize Gaia Capoeira – Areia no Mar to use my personal data only to manage my registration for this event (Colombian Law 1581 of 2012). I can ask the organizers to correct or delete it.',
+        'consentimiento' => 'I authorize Gaia Capoeira to use my personal data only to manage my registration for this event (Colombian Law 1581 of 2012). I can ask the organizers to correct or delete it.',
         'enviando' => 'Sending…',
         'inscribirme' => 'Register',
         'confirmacion' => [

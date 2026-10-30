@@ -80,7 +80,7 @@ export function PublicLayout({
             <main className="flex-1">{children}</main>
 
             <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground">
-                Gaia Capoeira · Areia no Mar
+                Gaia Capoeira
             </footer>
         </div>
     );
