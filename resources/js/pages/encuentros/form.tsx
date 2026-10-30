@@ -426,17 +426,6 @@ export default function EncuentroFormPage({
                     }
                 />
 
-                <TraduccionesEditor
-                    encuentro={data}
-                    precios={data.precios}
-                    actividades={data.actividades}
-                    invitados={data.invitados}
-                    onEncuentro={(t) => form.setData('traducciones', t)}
-                    onPrecios={(p) => form.setData('precios', p)}
-                    onActividades={(a) => form.setData('actividades', a)}
-                    onInvitados={(i) => form.setData('invitados', i)}
-                />
-
                 {/* Pago */}
                 <section className="space-y-3 panel p-5">
                     <PanelTitle>Datos de pago (opcional)</PanelTitle>
@@ -508,6 +497,18 @@ export default function EncuentroFormPage({
                         </label>
                     )}
                 </section>
+
+                {/* Al final: primero se llena todo en español, después se traduce. */}
+                <TraduccionesEditor
+                    encuentro={data}
+                    precios={data.precios}
+                    actividades={data.actividades}
+                    invitados={data.invitados}
+                    onEncuentro={(t) => form.setData('traducciones', t)}
+                    onPrecios={(p) => form.setData('precios', p)}
+                    onActividades={(a) => form.setData('actividades', a)}
+                    onInvitados={(i) => form.setData('invitados', i)}
+                />
 
                 <FormError message={formError} />
 
