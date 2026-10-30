@@ -29,7 +29,8 @@ export function PublicLayout({
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
-            <Head title={title}>
+            {/* El sufijo hace que app.tsx no le agregue "Areia no Mar". */}
+            <Head title={`${title} - Gaia Capoeira`}>
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
 
