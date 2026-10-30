@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property CarbonImmutable $starts_on
  * @property CarbonImmutable|null $ends_on
  * @property string|null $lugar
+ * @property string|null $direccion Para el mapa de la página pública.
  * @property string|null $mapa_url
  * @property string|null $descripcion
  * @property string|null $info_pago
@@ -42,6 +43,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon $updated_at
  * @property-read Collection<int, EncuentroPrecio> $precios
  * @property-read Collection<int, Inscripcion> $inscripciones
+ * @property-read Collection<int, EncuentroActividad> $actividades
+ * @property-read Collection<int, EncuentroInvitado> $invitados
  * @property-read Evento|null $evento
  * @property-read int|null $inscripciones_count Con withCount('inscripciones').
  */
@@ -70,7 +73,7 @@ class Encuentro extends Model
     ];
 
     protected $fillable = [
-        'slug', 'nombre', 'starts_on', 'ends_on', 'lugar', 'mapa_url',
+        'slug', 'nombre', 'starts_on', 'ends_on', 'lugar', 'direccion', 'mapa_url',
         'descripcion', 'info_pago', 'portada_url', 'cupo',
         'inscripciones_desde', 'inscripciones_hasta', 'estado',
         'subdominio', 'respuesta_api', 'evento_id', 'user_id',
@@ -92,6 +95,22 @@ class Encuentro extends Model
     public function precios(): HasMany
     {
         return $this->hasMany(EncuentroPrecio::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Programación: por día, después por hora (sin hora primero) y orden del formulario.
+     *
+     * @return HasMany<EncuentroActividad, $this>
+     */
+    public function actividades(): HasMany
+    {
+        return $this->hasMany(EncuentroActividad::class)->orderBy('fecha')->orderBy('hora_inicio')->orderBy('sort_order');
+    }
+
+    /** @return HasMany<EncuentroInvitado, $this> */
+    public function invitados(): HasMany
+    {
+        return $this->hasMany(EncuentroInvitado::class)->orderBy('sort_order');
     }
 
     /** @return HasMany<Inscripcion, $this> */

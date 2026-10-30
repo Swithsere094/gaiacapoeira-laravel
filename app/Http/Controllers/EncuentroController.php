@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
+use App\Models\EncuentroActividad;
+use App\Models\EncuentroInvitado;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
 use App\Services\HostingerClient;
@@ -10,6 +12,7 @@ use App\Support\EncuentroCalendario;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -64,6 +67,8 @@ class EncuentroController extends Controller
             ]);
             $this->savePortada($request, $encuentro);
             $this->syncPrecios($encuentro, $data['precios'] ?? []);
+            $this->syncActividades($encuentro, $data['actividades'] ?? []);
+            $this->syncInvitados($request, $encuentro, $data['invitados'] ?? []);
 
             return $encuentro;
         });
@@ -73,7 +78,7 @@ class EncuentroController extends Controller
 
     public function show(Encuentro $encuentro): Response
     {
-        $encuentro->load('precios');
+        $encuentro->load('precios', 'actividades', 'invitados');
         $inscripciones = $encuentro->inscripciones()->with('pagos')->latest()->get();
         $activas = $inscripciones->where('estado', Inscripcion::ACTIVA);
         $porRevisar = fn (Inscripcion $i) => $i->pagos->where('estado', InscripcionPago::REPORTADO)->count();
@@ -131,7 +136,7 @@ class EncuentroController extends Controller
 
     public function edit(Encuentro $encuentro): Response
     {
-        $encuentro->load('precios');
+        $encuentro->load('precios', 'actividades', 'invitados');
 
         return Inertia::render('encuentros/form', [
             'encuentro' => $this->present($encuentro),
@@ -151,6 +156,8 @@ class EncuentroController extends Controller
             ]);
             $this->savePortada($request, $encuentro);
             $this->syncPrecios($encuentro, $data['precios'] ?? []);
+            $this->syncActividades($encuentro, $data['actividades'] ?? []);
+            $this->syncInvitados($request, $encuentro, $data['invitados'] ?? []);
         });
 
         EncuentroCalendario::sync($encuentro->fresh() ?? $encuentro);
@@ -222,13 +229,14 @@ class EncuentroController extends Controller
 
         EncuentroCalendario::remove($encuentro);
         Uploads::delete($encuentro->portada_url);
+        $encuentro->invitados->each(fn (EncuentroInvitado $i) => Uploads::delete($i->foto_url));
         $encuentro->delete();
 
         return redirect('/encuentros')->with('success', "Encuentro «{$encuentro->nombre}» eliminado.");
     }
 
     /**
-     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>}
+     * @return array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>}
      */
     private function validated(Request $request, ?Encuentro $encuentro): array
     {
@@ -240,7 +248,7 @@ class EncuentroController extends Controller
 
         $slugLocked = $encuentro !== null && $encuentro->subdominio !== 'ninguno';
 
-        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>} $data */
+        /** @var array{nombre: string, slug: string, starts_on: string, ends_on?: string|null, lugar?: string|null, direccion?: string|null, mapa_url?: string|null, descripcion?: string|null, info_pago?: string|null, cupo?: int|null, inscripciones_desde?: string|null, inscripciones_hasta?: string|null, precios?: list<array{id?: string|null, nombre: string, descripcion?: string|null, valor: int}>, actividades?: list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>, invitados?: list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>} $data */
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:120'],
             'slug' => $slugLocked ? ['nullable'] : [
@@ -251,6 +259,7 @@ class EncuentroController extends Controller
             'starts_on' => ['required', 'date'],
             'ends_on' => ['nullable', 'date', 'after_or_equal:starts_on'],
             'lugar' => ['nullable', 'string', 'max:200'],
+            'direccion' => ['nullable', 'string', 'max:200'],
             'mapa_url' => ['nullable', 'url:https', 'max:500'],
             'descripcion' => ['nullable', 'string', 'max:5000'],
             'info_pago' => ['nullable', 'string', 'max:2000'],
@@ -264,6 +273,23 @@ class EncuentroController extends Controller
             'precios.*.nombre' => ['required', 'string', 'max:120'],
             'precios.*.descripcion' => ['nullable', 'string', 'max:200'],
             'precios.*.valor' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'actividades' => ['array', 'max:100'],
+            'actividades.*.id' => ['nullable', 'string'],
+            // Dentro de los días del encuentro (si sus fechas son válidas).
+            'actividades.*.fecha' => ['required', 'date', ...$this->diasDelEncuentro($request)],
+            'actividades.*.hora_inicio' => ['nullable', 'date_format:H:i', 'required_with:actividades.*.hora_fin'],
+            'actividades.*.hora_fin' => ['nullable', 'date_format:H:i', 'after:actividades.*.hora_inicio'],
+            'actividades.*.titulo' => ['required', 'string', 'max:150'],
+            'actividades.*.descripcion' => ['nullable', 'string', 'max:300'],
+            'invitados' => ['array', 'max:30'],
+            'invitados.*.id' => ['nullable', 'string'],
+            'invitados.*.nombre' => ['required', 'string', 'max:120'],
+            'invitados.*.titulo' => ['nullable', 'string', 'max:60'],
+            'invitados.*.grupo' => ['nullable', 'string', 'max:120'],
+            'invitados.*.ciudad' => ['nullable', 'string', 'max:80'],
+            'invitados.*.bio' => ['nullable', 'string', 'max:1500'],
+            'invitados.*.foto' => ['nullable', 'file', 'extensions:jpg,jpeg,png,webp', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'invitados.*.quitar_foto' => ['nullable', 'boolean'],
         ], [
             'nombre.required' => 'El nombre del encuentro es obligatorio',
             'slug.required' => 'La dirección necesita letras o números',
@@ -283,6 +309,18 @@ class EncuentroController extends Controller
             'precios.*.nombre.required' => 'Cada opción de precio necesita un nombre',
             'precios.*.valor.required' => 'Cada opción de precio necesita un valor',
             'precios.*.valor.integer' => 'El valor tiene que ser un número sin puntos ni comas',
+            'actividades.*.fecha.required' => 'Cada actividad necesita un día',
+            'actividades.*.fecha.after_or_equal' => 'Cada actividad tiene que caer dentro de los días del encuentro',
+            'actividades.*.fecha.before_or_equal' => 'Cada actividad tiene que caer dentro de los días del encuentro',
+            'actividades.*.hora_inicio.date_format' => 'La hora de una actividad no es válida',
+            'actividades.*.hora_fin.date_format' => 'La hora de una actividad no es válida',
+            'actividades.*.hora_inicio.required_with' => 'Si una actividad tiene hora de fin, ponle también hora de inicio',
+            'actividades.*.hora_fin.after' => 'La hora de fin de una actividad tiene que ser después de la de inicio',
+            'actividades.*.titulo.required' => 'Cada actividad necesita un título',
+            'invitados.*.nombre.required' => 'Cada invitado necesita un nombre',
+            'invitados.*.foto.extensions' => 'La foto de un invitado tiene que ser JPG, PNG o WEBP',
+            'invitados.*.foto.mimes' => 'La foto de un invitado tiene que ser JPG, PNG o WEBP',
+            'invitados.*.foto.max' => 'La foto de un invitado no puede superar 5 MB',
         ]);
 
         return $data;
@@ -299,6 +337,7 @@ class EncuentroController extends Controller
             'starts_on' => $data['starts_on'],
             'ends_on' => ($data['ends_on'] ?? null) ?: null,
             'lugar' => ($data['lugar'] ?? null) ?: null,
+            'direccion' => ($data['direccion'] ?? null) ?: null,
             'mapa_url' => ($data['mapa_url'] ?? null) ?: null,
             'descripcion' => ($data['descripcion'] ?? null) ?: null,
             'info_pago' => ($data['info_pago'] ?? null) ?: null,
@@ -349,6 +388,100 @@ class EncuentroController extends Controller
         $encuentro->precios()->whereNotIn('id', $keep)->delete();
     }
 
+    /**
+     * La fecha de una actividad tiene que caer entre el inicio y el fin del
+     * encuentro. Si las fechas del encuentro no son válidas no agrega nada
+     * (ya falla su propia validación).
+     *
+     * @return list<string>
+     */
+    private function diasDelEncuentro(Request $request): array
+    {
+        $inicio = (string) $request->input('starts_on');
+        $fin = (string) ($request->input('ends_on') ?: $inicio);
+
+        if (strtotime($inicio) === false || strtotime($fin) === false) {
+            return [];
+        }
+
+        return ["after_or_equal:{$inicio}", "before_or_equal:{$fin}"];
+    }
+
+    /**
+     * Igual que las opciones de precio: con id se actualizan, las nuevas se
+     * crean y las que ya no están se borran.
+     *
+     * @param  list<array{id?: string|null, fecha: string, hora_inicio?: string|null, hora_fin?: string|null, titulo: string, descripcion?: string|null}>  $actividades
+     */
+    private function syncActividades(Encuentro $encuentro, array $actividades): void
+    {
+        $keep = [];
+
+        foreach ($actividades as $i => $actividad) {
+            $values = [
+                'fecha' => $actividad['fecha'],
+                'hora_inicio' => ($actividad['hora_inicio'] ?? null) ?: null,
+                'hora_fin' => ($actividad['hora_fin'] ?? null) ?: null,
+                'titulo' => trim($actividad['titulo']),
+                'descripcion' => ($actividad['descripcion'] ?? null) ?: null,
+                'sort_order' => $i,
+            ];
+            $existing = ($actividad['id'] ?? null) ? $encuentro->actividades()->whereKey($actividad['id'])->first() : null;
+
+            if ($existing) {
+                $existing->update($values);
+                $keep[] = $existing->id;
+            } else {
+                $keep[] = $encuentro->actividades()->create($values)->id;
+            }
+        }
+
+        $encuentro->actividades()->whereNotIn('id', $keep)->delete();
+    }
+
+    /**
+     * Como las actividades, más la foto de cada invitado: `invitados.N.foto`
+     * reemplaza la anterior y `quitar_foto` la borra. Al quitar un invitado
+     * se borra también su foto del disco.
+     *
+     * @param  list<array{id?: string|null, nombre: string, titulo?: string|null, grupo?: string|null, ciudad?: string|null, bio?: string|null, quitar_foto?: mixed}>  $invitados
+     */
+    private function syncInvitados(Request $request, Encuentro $encuentro, array $invitados): void
+    {
+        $keep = [];
+
+        foreach ($invitados as $i => $datos) {
+            $invitado = (($datos['id'] ?? null) ? $encuentro->invitados()->whereKey($datos['id'])->first() : null)
+                ?? $encuentro->invitados()->make();
+
+            $invitado->fill([
+                'nombre' => trim($datos['nombre']),
+                'titulo' => ($datos['titulo'] ?? null) ?: null,
+                'grupo' => ($datos['grupo'] ?? null) ?: null,
+                'ciudad' => ($datos['ciudad'] ?? null) ?: null,
+                'bio' => ($datos['bio'] ?? null) ?: null,
+                'sort_order' => $i,
+            ]);
+
+            $foto = $request->file("invitados.{$i}.foto");
+            if ($foto instanceof UploadedFile) {
+                Uploads::delete($invitado->foto_url);
+                $invitado->foto_url = Uploads::store($foto, 'encuentros');
+            } elseif (filter_var($datos['quitar_foto'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                Uploads::delete($invitado->foto_url);
+                $invitado->foto_url = null;
+            }
+
+            $invitado->save();
+            $keep[] = $invitado->id;
+        }
+
+        $encuentro->invitados()->whereNotIn('id', $keep)->get()->each(function (EncuentroInvitado $invitado) {
+            Uploads::delete($invitado->foto_url);
+            $invitado->delete();
+        });
+    }
+
     /** @return array<string, mixed> */
     private function present(Encuentro $encuentro): array
     {
@@ -359,6 +492,7 @@ class EncuentroController extends Controller
             'starts_on' => $encuentro->starts_on->toDateString(),
             'ends_on' => $encuentro->ends_on?->toDateString(),
             'lugar' => $encuentro->lugar,
+            'direccion' => $encuentro->direccion,
             'mapa_url' => $encuentro->mapa_url,
             'descripcion' => $encuentro->descripcion,
             'info_pago' => $encuentro->info_pago,
@@ -375,6 +509,16 @@ class EncuentroController extends Controller
                 'nombre' => $p->nombre,
                 'descripcion' => $p->descripcion,
                 'valor' => $p->valor,
+            ])->values(),
+            'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray())->values(),
+            'invitados' => $encuentro->invitados->map(fn (EncuentroInvitado $i) => [
+                'id' => $i->id,
+                'nombre' => $i->nombre,
+                'titulo' => $i->titulo,
+                'grupo' => $i->grupo,
+                'ciudad' => $i->ciudad,
+                'bio' => $i->bio,
+                'foto_url' => $i->foto_url,
             ])->values(),
         ];
     }

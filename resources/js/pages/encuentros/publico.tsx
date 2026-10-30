@@ -1,6 +1,9 @@
 import { useForm } from '@inertiajs/react';
 import { CalendarDays, Lock, MapPin, Wallet } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
+import { InvitadosPublico } from '@/components/encuentros/invitados-publico';
+import { MapaPublico } from '@/components/encuentros/mapa-publico';
+import { ProgramaPublico } from '@/components/encuentros/programa-publico';
 import { PublicLayout } from '@/components/encuentros/public-layout';
 import { FormError } from '@/components/form-error';
 import { PanelTitle } from '@/components/headings';
@@ -8,7 +11,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDate } from '@/lib/dates';
-import { formatMoney, formatRange } from '@/lib/encuentros';
+import { formatMoney, formatRange, mapaLinkUrl } from '@/lib/encuentros';
 import { cn } from '@/lib/utils';
 import type { EncuentroPublico } from '@/types/encuentros';
 
@@ -26,6 +29,11 @@ export default function EncuentroPublicoPage({
     tallas: string[];
     metodos: string[];
 }) {
+    const comoLlegar = mapaLinkUrl(
+        encuentro.direccion ?? null,
+        encuentro.mapa_url,
+    );
+
     return (
         <PublicLayout title={encuentro.nombre}>
             {/* Portada */}
@@ -52,9 +60,9 @@ export default function EncuentroPublicoPage({
                         {encuentro.lugar && (
                             <span className="inline-flex items-center gap-2">
                                 <MapPin className="h-5 w-5 text-primary" />
-                                {encuentro.mapa_url ? (
+                                {comoLlegar ? (
                                     <a
-                                        href={encuentro.mapa_url}
+                                        href={comoLlegar}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="underline-offset-4 hover:text-foreground hover:underline"
@@ -76,6 +84,20 @@ export default function EncuentroPublicoPage({
                         {encuentro.descripcion}
                     </p>
                 )}
+
+                {(encuentro.actividades ?? []).length > 0 && (
+                    <ProgramaPublico
+                        actividades={encuentro.actividades ?? []}
+                    />
+                )}
+
+                <InvitadosPublico invitados={encuentro.invitados ?? []} />
+
+                <MapaPublico
+                    lugar={encuentro.lugar}
+                    direccion={encuentro.direccion ?? null}
+                    enlace={encuentro.mapa_url}
+                />
 
                 <section className="space-y-3">
                     <PanelTitle>Opciones de inscripción</PanelTitle>

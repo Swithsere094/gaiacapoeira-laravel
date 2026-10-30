@@ -37,6 +37,7 @@ $encuentroPublico = function () {
     Route::get('inscripcion/{token}', [EncuentroPublicoController::class, 'consulta'])->where('token', '[A-Za-z0-9]{20,64}')->name('consulta');
     Route::post('inscripcion/{token}/pago', [EncuentroPublicoController::class, 'reportarPago'])->where('token', '[A-Za-z0-9]{20,64}')->name('reportar-pago');
     Route::get('portada', [EncuentroPublicoController::class, 'portada'])->name('portada');
+    Route::get('invitados/{invitado}/foto', [EncuentroPublicoController::class, 'fotoInvitado'])->whereUuid('invitado')->name('invitado-foto');
 };
 
 Route::domain('{encuentro}.'.config('services.hostinger.domain'))

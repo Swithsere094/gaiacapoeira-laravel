@@ -2,6 +2,15 @@ import { router, useForm } from '@inertiajs/react';
 import { ImageIcon, Lock, Plus, Ticket, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import {
+    InvitadosEditor,
+    invitadoPayload,
+    toInvitadoForm,
+} from '@/components/encuentros/invitados-editor';
+import {
+    ProgramaEditor,
+    toActividadForm,
+} from '@/components/encuentros/programa-editor';
 import { FormActions } from '@/components/form-actions';
 import { FormError } from '@/components/form-error';
 import { PanelTitle } from '@/components/headings';
@@ -12,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { diasDelEncuentro } from '@/lib/encuentros';
 import type { Encuentro } from '@/types/encuentros';
 
 interface PrecioForm {
@@ -43,6 +53,7 @@ export default function EncuentroFormPage({
         starts_on: encuentro?.starts_on ?? '',
         ends_on: encuentro?.ends_on ?? '',
         lugar: encuentro?.lugar ?? '',
+        direccion: encuentro?.direccion ?? '',
         mapa_url: encuentro?.mapa_url ?? '',
         descripcion: encuentro?.descripcion ?? '',
         info_pago: encuentro?.info_pago ?? '',
@@ -55,6 +66,8 @@ export default function EncuentroFormPage({
             descripcion: p.descripcion ?? '',
             valor: p.valor.toString(),
         })),
+        actividades: (encuentro?.actividades ?? []).map(toActividadForm),
+        invitados: (encuentro?.invitados ?? []).map(toInvitadoForm),
         portada: null as File | null,
         quitar_portada: 0,
     });
@@ -85,8 +98,12 @@ export default function EncuentroFormPage({
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         // Con archivo, PHP no interpreta un PUT real: va como POST + _method.
+        form.transform((d) => ({
+            ...d,
+            invitados: d.invitados.map(invitadoPayload),
+            ...(encuentro ? { _method: 'put' } : {}),
+        }));
         if (encuentro) {
-            form.transform((d) => ({ ...d, _method: 'put' }));
             form.post(`/encuentros/${encuentro.id}`, { forceFormData: true });
         } else {
             form.post('/encuentros', { forceFormData: true });
@@ -183,6 +200,24 @@ export default function EncuentroFormPage({
                                 placeholder="https://maps.app.goo.gl/…"
                             />
                         </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="direccion">
+                            Dirección para el mapa (opcional)
+                        </Label>
+                        <Input
+                            id="direccion"
+                            value={data.direccion}
+                            onChange={(e) =>
+                                form.setData('direccion', e.target.value)
+                            }
+                            maxLength={200}
+                            placeholder="Ej.: Calle 50 # 40-20, Rionegro, Antioquia"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Con dirección, la página muestra un mapa de Google
+                            (se carga solo si la persona lo pide).
+                        </p>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="descripcion">
@@ -390,6 +425,24 @@ export default function EncuentroFormPage({
                         Agregar opción
                     </Button>
                 </section>
+
+                <ProgramaEditor
+                    actividades={data.actividades}
+                    dias={diasDelEncuentro(
+                        data.starts_on,
+                        data.ends_on || null,
+                    )}
+                    onChange={(actividades) =>
+                        form.setData('actividades', actividades)
+                    }
+                />
+
+                <InvitadosEditor
+                    invitados={data.invitados}
+                    onChange={(invitados) =>
+                        form.setData('invitados', invitados)
+                    }
+                />
 
                 {/* Pago */}
                 <section className="space-y-3 panel p-5">

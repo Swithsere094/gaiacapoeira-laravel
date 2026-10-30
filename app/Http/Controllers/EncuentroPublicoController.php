@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
+use App\Models\EncuentroActividad;
+use App\Models\EncuentroInvitado;
 use App\Models\Inscripcion;
 use App\Models\InscripcionPago;
 use App\Support\ClientIp;
@@ -35,10 +37,24 @@ class EncuentroPublicoController extends Controller
     public function show(Request $request): Response
     {
         $encuentro = $this->encuentro($request);
-        $encuentro->load('precios');
+        $encuentro->load('precios', 'actividades', 'invitados');
+        $base = (string) $request->attributes->get('encuentro_base');
 
         return Inertia::render('encuentros/publico', [
-            'encuentro' => $this->present($encuentro, $request),
+            'encuentro' => [
+                ...$this->present($encuentro, $request),
+                'direccion' => $encuentro->direccion,
+                'actividades' => $encuentro->actividades->map(fn (EncuentroActividad $a) => $a->toPublicArray())->values(),
+                'invitados' => $encuentro->invitados->map(fn (EncuentroInvitado $i) => [
+                    'id' => $i->id,
+                    'nombre' => $i->nombre,
+                    'titulo' => $i->titulo,
+                    'grupo' => $i->grupo,
+                    'ciudad' => $i->ciudad,
+                    'bio' => $i->bio,
+                    'foto' => $i->foto_url ? "{$base}/invitados/{$i->id}/foto" : null,
+                ])->values(),
+            ],
             'cierre' => $encuentro->motivoCierre(EventCalendar::today()),
             'tallas' => Inscripcion::TALLAS,
             'metodos' => InscripcionPago::METODOS,
@@ -225,6 +241,16 @@ class EncuentroPublicoController extends Controller
     public function portada(Request $request): BinaryFileResponse
     {
         $path = Uploads::pathFor($this->encuentro($request)->portada_url);
+        abort_if($path === null, 404);
+
+        return response()->file($path);
+    }
+
+    /** Foto de un invitado (la carpeta de subidas es privada). */
+    public function fotoInvitado(Request $request, string $invitado): BinaryFileResponse
+    {
+        $foto = $this->encuentro($request)->invitados()->whereKey($invitado)->value('foto_url');
+        $path = Uploads::pathFor(is_string($foto) ? $foto : null);
         abort_if($path === null, 404);
 
         return response()->file($path);

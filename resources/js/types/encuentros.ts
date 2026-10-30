@@ -30,6 +30,26 @@ export interface PrecioOpcion {
     valor: number;
 }
 
+/** Una actividad de la programación. Horas "HH:MM" de Colombia. */
+export interface Actividad {
+    id: string;
+    fecha: string;
+    hora_inicio: string | null;
+    hora_fin: string | null;
+    titulo: string;
+    descripcion: string | null;
+}
+
+/** Invitado de un encuentro. */
+export interface Invitado {
+    id: string;
+    nombre: string;
+    titulo: string | null;
+    grupo: string | null;
+    ciudad: string | null;
+    bio: string | null;
+}
+
 /** Encuentro como lo ve quien lo gestiona. */
 export interface Encuentro {
     id: string;
@@ -38,6 +58,7 @@ export interface Encuentro {
     starts_on: string;
     ends_on: string | null;
     lugar: string | null;
+    direccion: string | null;
     mapa_url: string | null;
     descripcion: string | null;
     info_pago: string | null;
@@ -50,6 +71,8 @@ export interface Encuentro {
     url: string;
     respaldo_url: string;
     precios: PrecioOpcion[];
+    actividades: Actividad[];
+    invitados: (Invitado & { foto_url: string | null })[];
 }
 
 /** Inscripción en el panel del organizador. */
@@ -96,4 +119,8 @@ export interface EncuentroPublico {
     /** Base de las direcciones: '' en el subdominio, '/e/slug' en el respaldo. */
     base: string;
     precios: PrecioOpcion[];
+    /** Solo en la página del encuentro (no en la consulta de la inscripción). */
+    direccion?: string | null;
+    actividades?: Actividad[];
+    invitados?: (Invitado & { foto: string | null })[];
 }

@@ -1,5 +1,6 @@
 import { formatDate } from '@/lib/dates';
 import type {
+    Actividad,
     EncuentroEstado,
     PagoEstado,
     PagoRegistroEstado,
@@ -19,6 +20,78 @@ export function formatRange(start: string, end: string | null): string {
     return end && end !== start
         ? `${formatDate(start)} – ${formatDate(end)}`
         : formatDate(start);
+}
+
+/** Días del encuentro (Y-m-d), del inicio al fin. Máximo 60 por las dudas. */
+export function diasDelEncuentro(start: string, end: string | null): string[] {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+        return [];
+    }
+    const dias = [start];
+    const [y, m, d] = start.split('-').map(Number);
+    // En UTC para no depender del huso del navegador.
+    const cursor = new Date(Date.UTC(y, m - 1, d));
+    const fin = end && end > start ? end : start;
+    while (dias.length < 60) {
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+        const dia = cursor.toISOString().slice(0, 10);
+        if (dia > fin) {
+            break;
+        }
+        dias.push(dia);
+    }
+
+    return dias;
+}
+
+/** "8:00 a. m. – 12:00 p. m." en formato de 12 horas, o '' sin hora. */
+export function formatHorario(
+    a: Pick<Actividad, 'hora_inicio' | 'hora_fin'>,
+): string {
+    const hora = (value: string) => {
+        const [h, min] = value.split(':').map(Number);
+        const sufijo = h < 12 ? 'a. m.' : 'p. m.';
+
+        return `${h % 12 || 12}:${String(min).padStart(2, '0')} ${sufijo}`;
+    };
+    if (!a.hora_inicio) {
+        return '';
+    }
+
+    return a.hora_fin
+        ? `${hora(a.hora_inicio)} – ${hora(a.hora_fin)}`
+        : hora(a.hora_inicio);
+}
+
+/** Actividades agrupadas por día, en el orden en que llegan. */
+export function agruparPorDia(
+    actividades: Actividad[],
+): [string, Actividad[]][] {
+    const grupos = new Map<string, Actividad[]>();
+    for (const a of actividades) {
+        grupos.set(a.fecha, [...(grupos.get(a.fecha) ?? []), a]);
+    }
+
+    return [...grupos.entries()];
+}
+
+/** Mapa de Google embebido a partir de una dirección (no necesita clave). */
+export function mapaEmbedUrl(direccion: string): string {
+    return `https://www.google.com/maps?q=${encodeURIComponent(direccion)}&output=embed`;
+}
+
+/** "Cómo llegar": el enlace que puso el organizador o una búsqueda de la dirección. */
+export function mapaLinkUrl(
+    direccion: string | null,
+    enlace: string | null,
+): string | null {
+    if (enlace) {
+        return enlace;
+    }
+
+    return direccion
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`
+        : null;
 }
 
 export const ESTADO_LABELS: Record<EncuentroEstado, string> = {

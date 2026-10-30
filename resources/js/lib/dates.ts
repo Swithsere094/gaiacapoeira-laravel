@@ -27,6 +27,8 @@ const FORMATS = {
     short: { day: 'numeric', month: 'short' },
     /** "Julio de 2026" */
     month: { month: 'long', year: 'numeric' },
+    /** "Sábado, 21 de noviembre" */
+    weekday: { weekday: 'long', day: 'numeric', month: 'long' },
 } satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 export function formatDate(
@@ -35,7 +37,7 @@ export function formatDate(
 ): string {
     const label = parseDate(value).toLocaleDateString('es-ES', FORMATS[style]);
 
-    return style === 'month'
+    return style === 'month' || style === 'weekday'
         ? label.charAt(0).toUpperCase() + label.slice(1)
         : label;
 }
