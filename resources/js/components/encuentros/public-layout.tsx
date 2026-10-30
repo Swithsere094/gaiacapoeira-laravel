@@ -33,19 +33,17 @@ export function PublicLayout({
                 <meta name="robots" content="noindex, nofollow" />
             </Head>
 
-            <header className="border-b border-border">
+            {/* Fija arriba: el selector de idioma queda siempre a mano. */}
+            <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                 <div className="mx-auto flex h-16 max-w-4xl items-center gap-3 px-4 sm:px-6">
                     <span
                         aria-hidden="true"
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-lg font-bold text-primary-foreground"
                     >
-                        A
+                        G
                     </span>
                     <span className="min-w-0 truncate font-serif text-lg font-bold text-foreground">
-                        <span className="hidden sm:inline">
-                            Gaia Capoeira ·{' '}
-                        </span>
-                        Areia no Mar
+                        Gaia Capoeira
                     </span>
                     <nav
                         aria-label={t('idioma')}
