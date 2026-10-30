@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
 use App\Models\Inscripcion;
+use App\Models\InscripcionPago;
 use App\Support\ClientIp;
 use App\Support\EventCalendar;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
@@ -39,6 +41,7 @@ class EncuentroPublicoController extends Controller
             'encuentro' => $this->present($encuentro, $request),
             'cierre' => $encuentro->motivoCierre(EventCalendar::today()),
             'tallas' => Inscripcion::TALLAS,
+            'metodos' => InscripcionPago::METODOS,
         ]);
     }
 
@@ -75,7 +78,10 @@ class EncuentroPublicoController extends Controller
             'emergencia_telefono' => ['required', 'string', 'max:30', 'regex:/^[0-9+()\s-]{7,30}$/'],
             'precio_id' => ['required', Rule::exists('encuentro_precios', 'id')->where('encuentro_id', $encuentro->id)],
             'consentimiento' => ['accepted'],
+            // "Ya pagué": opcional; si lo marca, monto y comprobante son obligatorios.
+            ...$this->pagoRules($request->boolean('ya_pague'), 'pago_'),
         ], [
+            ...$this->pagoMensajes('pago_'),
             'nombre.required' => 'Escribe tu nombre completo',
             'grupo.required' => 'Escribe tu grupo',
             'ciudad.required' => 'Escribe tu ciudad',
@@ -95,7 +101,7 @@ class EncuentroPublicoController extends Controller
         $precio = $encuentro->precios()->whereKey($data['precio_id'])->firstOrFail();
         $inscripcion = $encuentro->inscripciones()->create([
             // Laravel ya recorta los textos y deja en null los vacíos.
-            ...Arr::except($data, ['precio_id', 'consentimiento']),
+            ...Arr::except($data, ['precio_id', 'consentimiento', 'pago_monto', 'pago_metodo', 'pago_comprobante', 'pago_nota']),
             'codigo' => Inscripcion::nuevoCodigo(),
             'token' => Inscripcion::nuevoToken(),
             'precio_id' => $precio->id,
@@ -105,7 +111,34 @@ class EncuentroPublicoController extends Controller
             'locale' => 'es',
         ]);
 
+        if ($request->boolean('ya_pague')) {
+            $this->reportar($request, $inscripcion, 'pago_');
+        }
+
         return redirect("{$base}/inscripcion/{$inscripcion->token}");
+    }
+
+    /**
+     * Reportar un pago después de inscribirse, desde el enlace privado
+     * (queda por revisar hasta que un organizador lo confirma).
+     */
+    public function reportarPago(Request $request, string $token): RedirectResponse
+    {
+        $encuentro = $this->encuentro($request);
+        $inscripcion = $encuentro->inscripciones()->where('token', $token)->firstOrFail();
+
+        $key = 'inscripcion:'.ClientIp::for($request);
+        if (RateLimiter::tooManyAttempts($key, self::LIMIT)) {
+            throw ValidationException::withMessages(['monto' => 'Demasiados envíos seguidos desde esta conexión. Intenta de nuevo en unos minutos.']);
+        }
+
+        abort_if($inscripcion->estado !== Inscripcion::ACTIVA, 404);
+
+        $request->validate($this->pagoRules(true), $this->pagoMensajes());
+        RateLimiter::hit($key, self::WINDOW_SECONDS);
+        $this->reportar($request, $inscripcion);
+
+        return back()->with('success', 'Recibimos tu pago. Los organizadores lo van a revisar.');
     }
 
     /** Confirmación y consulta posterior, con el enlace privado. */
@@ -128,7 +161,64 @@ class EncuentroPublicoController extends Controller
                 'saldo' => $inscripcion->saldo(),
                 'estado' => $inscripcion->estado,
                 'created_at' => $inscripcion->created_at->toIso8601String(),
+                // Sin comprobantes ni notas internas: solo lo que la persona necesita ver.
+                'pagos' => $inscripcion->pagos->map(fn (InscripcionPago $p) => [
+                    'id' => $p->id,
+                    'monto' => $p->monto,
+                    'fecha' => $p->fecha->toDateString(),
+                    'metodo' => $p->metodo,
+                    'estado' => $p->estado,
+                ])->values(),
             ],
+            'metodos' => InscripcionPago::METODOS,
+        ]);
+    }
+
+    /**
+     * Reglas de un pago reportado; `$prefijo` = 'pago_' en el formulario de
+     * inscripción (junto a los otros campos).
+     *
+     * @return array<string, mixed>
+     */
+    private function pagoRules(bool $reporta, string $prefijo = ''): array
+    {
+        if (! $reporta) {
+            return [];
+        }
+
+        return [
+            "{$prefijo}monto" => ['required', 'integer', 'min:1', 'max:100000000'],
+            "{$prefijo}metodo" => ['nullable', Rule::in(InscripcionPago::METODOS)],
+            "{$prefijo}nota" => ['nullable', 'string', 'max:300'],
+            "{$prefijo}comprobante" => PagoController::comprobanteRules(required: true),
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function pagoMensajes(string $prefijo = ''): array
+    {
+        $mensajes = [];
+        foreach (PagoController::mensajes() as $key => $text) {
+            $mensajes[$prefijo.$key] = $text;
+        }
+
+        return $mensajes;
+    }
+
+    private function reportar(Request $request, Inscripcion $inscripcion, string $prefijo = ''): void
+    {
+        $file = $request->file("{$prefijo}comprobante");
+
+        $inscripcion->pagos()->create([
+            'monto' => (int) $request->input("{$prefijo}monto"),
+            'fecha' => EventCalendar::today()->toDateString(),
+            'metodo' => $request->input("{$prefijo}metodo") ?: null,
+            'nota' => $request->input("{$prefijo}nota") ?: null,
+            'comprobante_url' => $file instanceof UploadedFile
+                ? Uploads::store($file, InscripcionPago::COMPROBANTE_FOLDER)
+                : null,
+            'estado' => InscripcionPago::REPORTADO,
+            'origen' => 'participante',
         ]);
     }
 

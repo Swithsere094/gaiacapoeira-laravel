@@ -205,24 +205,20 @@ class InscripcionesTest extends TestCase
 
     // ── Gestión de inscripciones ────────────────────────────────────
 
-    public function test_el_organizador_marca_el_pago(): void
+    public function test_el_organizador_agrega_notas_y_cancela(): void
     {
         $encuentro = $this->encuentro();
         $inscripcion = $this->inscribir($encuentro);
         $this->actingAsRole('admin');
 
         $this->put("/encuentros/{$encuentro->id}/inscripciones/{$inscripcion->id}", [
-            'pago_estado' => 'parcial', 'monto_pagado' => 50000, 'estado' => 'activa', 'notas' => 'Nequi 3/5',
+            'estado' => 'cancelada', 'notas' => 'Avisó que no puede ir',
         ])->assertSessionHas('success');
 
         $inscripcion->refresh();
-        $this->assertSame('parcial', $inscripcion->pago_estado);
-        $this->assertSame(100000, $inscripcion->saldo());
-
-        $this->get("/encuentros/{$encuentro->id}")->assertInertia(fn (Assert $page) => $page
-            ->where('resumen.parciales', 1)
-            ->where('resumen.recaudado', 50000)
-            ->where('resumen.esperado', 150000));
+        $this->assertSame('cancelada', $inscripcion->estado);
+        $this->assertSame('Avisó que no puede ir', $inscripcion->notas);
+        $this->get("/encuentros/{$encuentro->id}")->assertInertia(fn (Assert $page) => $page->where('resumen.inscritos', 0));
     }
 
     public function test_no_se_toca_una_inscripcion_de_otro_encuentro(): void
@@ -260,6 +256,7 @@ class InscripcionesTest extends TestCase
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         $this->assertStringContainsString('Código;Fecha;Nombre', $csv);
         $this->assertStringContainsString('"Ana Restrepo";Borboleta;"Gaia Capoeira"', $csv);
+        $this->assertStringContainsString('Asistió', $csv);
         $this->assertStringContainsString('attachment; filename=batizado-2027-inscripciones-', (string) $response->headers->get('Content-Disposition'));
     }
 }

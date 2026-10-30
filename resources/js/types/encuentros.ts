@@ -6,6 +6,23 @@ export type EncuentroEstado =
 
 export type PagoEstado = 'pendiente' | 'parcial' | 'pagado';
 
+/** Estado de un pago del historial (no el de la inscripción). */
+export type PagoRegistroEstado = 'reportado' | 'confirmado' | 'rechazado';
+
+/** Un pago del historial de una inscripción. */
+export interface PagoRow {
+    id: string;
+    monto: number;
+    fecha: string;
+    metodo: string | null;
+    estado: PagoRegistroEstado;
+    /** Solo para el organizador. */
+    nota?: string | null;
+    origen?: 'participante' | 'organizador';
+    /** Dirección del comprobante (solo para el organizador). */
+    comprobante?: string | null;
+}
+
 export interface PrecioOpcion {
     id: string;
     nombre: string;
@@ -56,7 +73,11 @@ export interface InscripcionRow {
     monto_pagado: number;
     estado: 'activa' | 'cancelada';
     notas: string | null;
+    asistio: boolean;
     created_at: string;
+    /** Pagos que reportó la persona y faltan revisar. */
+    por_revisar: number;
+    pagos: PagoRow[];
 }
 
 /** Encuentro en su página pública (sin datos internos). */

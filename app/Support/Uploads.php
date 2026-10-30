@@ -23,6 +23,34 @@ final class Uploads
     /** Extensiones permitidas para documentos (las que ofrece la UI). */
     public const DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'webp'];
 
+    /**
+     * Carpetas que la ruta general `/uploads/{path}` no entrega a cualquier
+     * sesión (comprobantes de pago: los ven solo los organizadores).
+     */
+    public const PRIVATE_FOLDERS = ['comprobantes'];
+
+    /**
+     * Si una ruta real en disco (ya resuelta, como la da pathFor) cae en una
+     * carpeta privada. Se compara la ruta resuelta y no el texto pedido, así
+     * `politica/../comprobantes/…` tampoco pasa.
+     */
+    public static function isPrivate(string $absolutePath): bool
+    {
+        $root = realpath(self::root());
+        if ($root === false) {
+            return false;
+        }
+
+        foreach (self::PRIVATE_FOLDERS as $folder) {
+            $dir = $root.DIRECTORY_SEPARATOR.$folder.DIRECTORY_SEPARATOR;
+            if (strncasecmp($absolutePath, $dir, strlen($dir)) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function root(): string
     {
         return (string) config('filesystems.uploads_root', storage_path('app/uploads'));

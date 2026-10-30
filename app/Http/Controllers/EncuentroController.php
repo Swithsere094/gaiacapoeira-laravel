@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Encuentro;
 use App\Models\Inscripcion;
+use App\Models\InscripcionPago;
 use App\Services\HostingerClient;
 use App\Support\EncuentroCalendario;
 use App\Support\Uploads;
@@ -73,8 +74,9 @@ class EncuentroController extends Controller
     public function show(Encuentro $encuentro): Response
     {
         $encuentro->load('precios');
-        $inscripciones = $encuentro->inscripciones()->latest()->get();
+        $inscripciones = $encuentro->inscripciones()->with('pagos')->latest()->get();
         $activas = $inscripciones->where('estado', Inscripcion::ACTIVA);
+        $porRevisar = fn (Inscripcion $i) => $i->pagos->where('estado', InscripcionPago::REPORTADO)->count();
 
         return Inertia::render('encuentros/show', [
             'encuentro' => $this->present($encuentro),
@@ -98,9 +100,25 @@ class EncuentroController extends Controller
                 'monto_pagado' => $i->monto_pagado,
                 'estado' => $i->estado,
                 'notas' => $i->notas,
+                'asistio' => $i->asistio_at !== null,
                 'created_at' => $i->created_at->toIso8601String(),
+                'por_revisar' => $porRevisar($i),
+                'pagos' => $i->pagos->map(fn (InscripcionPago $p) => [
+                    'id' => $p->id,
+                    'monto' => $p->monto,
+                    'fecha' => $p->fecha->toDateString(),
+                    'metodo' => $p->metodo,
+                    'nota' => $p->nota,
+                    'estado' => $p->estado,
+                    'origen' => $p->origen,
+                    'comprobante' => $p->comprobante_url ? "/encuentros/{$encuentro->id}/pagos/{$p->id}/comprobante" : null,
+                ])->values(),
             ])->values(),
+            'hoy' => PagoController::hoy(),
+            'metodos' => InscripcionPago::METODOS,
             'resumen' => [
+                'por_revisar' => $activas->filter(fn (Inscripcion $i) => $porRevisar($i) > 0)->count(),
+                'asistieron' => $activas->whereNotNull('asistio_at')->count(),
                 'inscritos' => $activas->count(),
                 'pagados' => $activas->where('pago_estado', 'pagado')->count(),
                 'parciales' => $activas->where('pago_estado', 'parcial')->count(),

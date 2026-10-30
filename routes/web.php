@@ -11,6 +11,7 @@ use App\Http\Controllers\EventoController;
 use App\Http\Controllers\GaleraController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InscripcionController;
+use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\ProfileController;
@@ -34,6 +35,7 @@ $encuentroPublico = function () {
     Route::get('/', [EncuentroPublicoController::class, 'show'])->name('pagina');
     Route::post('inscripcion', [EncuentroPublicoController::class, 'store'])->name('inscribir');
     Route::get('inscripcion/{token}', [EncuentroPublicoController::class, 'consulta'])->where('token', '[A-Za-z0-9]{20,64}')->name('consulta');
+    Route::post('inscripcion/{token}/pago', [EncuentroPublicoController::class, 'reportarPago'])->where('token', '[A-Za-z0-9]{20,64}')->name('reportar-pago');
     Route::get('portada', [EncuentroPublicoController::class, 'portada'])->name('portada');
 };
 
@@ -139,6 +141,14 @@ Route::middleware('auth')->group(function () {
         Route::post('{encuentro}/inscripciones-abiertas', [EncuentroController::class, 'toggleInscripciones'])->whereUuid('encuentro');
         Route::get('{encuentro}/exportar', [InscripcionController::class, 'export'])->whereUuid('encuentro');
         Route::put('{encuentro}/inscripciones/{inscripcion}', [InscripcionController::class, 'update'])->whereUuid(['encuentro', 'inscripcion']);
+        Route::get('{encuentro}/asistencia', [InscripcionController::class, 'asistencia'])->whereUuid('encuentro');
+        Route::post('{encuentro}/inscripciones/{inscripcion}/asistencia', [InscripcionController::class, 'toggleAsistencia'])->whereUuid(['encuentro', 'inscripcion']);
+        // Pagos: registrar (con comprobante opcional, multipart) y revisar los reportados.
+        Route::post('{encuentro}/inscripciones/{inscripcion}/pagos', [PagoController::class, 'store'])->whereUuid(['encuentro', 'inscripcion']);
+        Route::post('{encuentro}/pagos/{pago}/confirmar', [PagoController::class, 'confirmar'])->whereUuid(['encuentro', 'pago']);
+        Route::post('{encuentro}/pagos/{pago}/rechazar', [PagoController::class, 'rechazar'])->whereUuid(['encuentro', 'pago']);
+        Route::delete('{encuentro}/pagos/{pago}', [PagoController::class, 'destroy'])->whereUuid(['encuentro', 'pago']);
+        Route::get('{encuentro}/pagos/{pago}/comprobante', [PagoController::class, 'comprobante'])->whereUuid(['encuentro', 'pago']);
     });
 
     // ── Solo administradores: usuarios y roles ───────────────────────

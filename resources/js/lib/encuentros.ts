@@ -1,5 +1,9 @@
 import { formatDate } from '@/lib/dates';
-import type { EncuentroEstado, PagoEstado } from '@/types/encuentros';
+import type {
+    EncuentroEstado,
+    PagoEstado,
+    PagoRegistroEstado,
+} from '@/types/encuentros';
 
 /** Pesos colombianos sin decimales: "$150.000". */
 export function formatMoney(value: number): string {
@@ -28,6 +32,18 @@ export const PAGO_LABELS: Record<PagoEstado, string> = {
     pendiente: 'Pendiente',
     parcial: 'Parcial',
     pagado: 'Pagado',
+};
+
+export const PAGO_REGISTRO_LABELS: Record<PagoRegistroEstado, string> = {
+    reportado: 'Por revisar',
+    confirmado: 'Confirmado',
+    rechazado: 'Rechazado',
+};
+
+export const PAGO_REGISTRO_CLASSES: Record<PagoRegistroEstado, string> = {
+    reportado: 'bg-chart-4/20 text-foreground',
+    confirmado: 'bg-primary/20 text-foreground',
+    rechazado: 'bg-muted text-muted-foreground line-through',
 };
 
 /** Colores de fondo con texto claro (contraste AA, como en Política). */

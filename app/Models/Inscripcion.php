@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -37,11 +39,13 @@ use Illuminate\Support\Str;
  * @property int $monto_pagado
  * @property string $estado activa | cancelada
  * @property string|null $notas
+ * @property Carbon|null $asistio_at Llegó al encuentro (lista de asistencia).
  * @property Carbon $consentimiento_at
  * @property string $locale
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Encuentro $encuentro
+ * @property-read Collection<int, InscripcionPago> $pagos
  */
 class Inscripcion extends Model
 {
@@ -65,7 +69,7 @@ class Inscripcion extends Model
         'profesor', 'graduacion', 'ciudad', 'telefono', 'email', 'talla',
         'emergencia_nombre', 'emergencia_telefono', 'precio_id',
         'precio_nombre', 'precio_valor', 'pago_estado', 'monto_pagado',
-        'estado', 'notas', 'consentimiento_at', 'locale',
+        'estado', 'notas', 'consentimiento_at', 'locale', 'asistio_at',
     ];
 
     protected function casts(): array
@@ -74,6 +78,7 @@ class Inscripcion extends Model
             'precio_valor' => 'integer',
             'monto_pagado' => 'integer',
             'consentimiento_at' => 'datetime',
+            'asistio_at' => 'datetime',
         ];
     }
 
@@ -106,5 +111,29 @@ class Inscripcion extends Model
     public function saldo(): int
     {
         return max(0, $this->precio_valor - $this->monto_pagado);
+    }
+
+    /** @return HasMany<InscripcionPago, $this> */
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(InscripcionPago::class)->orderBy('fecha')->orderBy('created_at');
+    }
+
+    /**
+     * Pone al día lo pagado con la suma de los pagos confirmados, y el
+     * estado: nada → pendiente, menos que el valor → parcial, todo → pagado.
+     */
+    public function recalcularPago(): void
+    {
+        $pagado = (int) $this->pagos()->where('estado', InscripcionPago::CONFIRMADO)->sum('monto');
+
+        $this->update([
+            'monto_pagado' => $pagado,
+            'pago_estado' => match (true) {
+                $pagado <= 0 => 'pendiente',
+                $pagado < $this->precio_valor => 'parcial',
+                default => 'pagado',
+            },
+        ]);
     }
 }

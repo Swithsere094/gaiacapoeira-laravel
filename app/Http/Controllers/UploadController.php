@@ -15,7 +15,9 @@ class UploadController extends Controller
     {
         $file = Uploads::pathFor('/uploads/'.$path);
 
-        abort_if($file === null, 404);
+        // Carpetas privadas (comprobantes de pago): no las entrega esta ruta
+        // general, solo sus rutas propias con permiso.
+        abort_if($file === null || Uploads::isPrivate($file), 404);
 
         return response()->file($file, [
             // Que el navegador no "adivine" otro tipo de contenido.

@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    ClipboardCheck,
     Download,
     ExternalLink,
     Eye,
@@ -40,25 +41,33 @@ interface Resumen {
     pendientes: number;
     recaudado: number;
     esperado: number;
+    por_revisar: number;
+    asistieron: number;
 }
 
-type Filtro = 'todas' | PagoEstado | 'canceladas';
+type Filtro = 'todas' | 'revisar' | PagoEstado | 'canceladas';
 
 /** Un encuentro: publicarlo y gestionar sus inscripciones. */
 export default function EncuentroShowPage({
     encuentro,
     inscripciones,
     resumen,
+    hoy,
+    metodos,
 }: {
     encuentro: Encuentro;
     inscripciones: InscripcionRow[];
     resumen: Resumen;
+    hoy: string;
+    metodos: string[];
 }) {
     const { confirm } = useConfirm();
     const [query, setQuery] = useState('');
     const [filtro, setFiltro] = useState<Filtro>('todas');
-    const [selected, setSelected] = useState<InscripcionRow | null>(null);
+    // Por id: la ventana muestra la inscripción ya actualizada tras cada acción.
+    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [dialogKey, setDialogKey] = useState(0);
+    const selected = inscripciones.find((i) => i.id === selectedId) ?? null;
     const publicado = encuentro.estado !== 'borrador';
 
     const shown = useMemo(() => {
@@ -66,7 +75,16 @@ export default function EncuentroShowPage({
         return inscripciones.filter((i) => {
             if (filtro === 'canceladas' && i.estado !== 'cancelada')
                 return false;
-            if (filtro !== 'canceladas' && filtro !== 'todas') {
+            if (
+                filtro === 'revisar' &&
+                (i.estado !== 'activa' || i.por_revisar === 0)
+            )
+                return false;
+            if (
+                filtro !== 'canceladas' &&
+                filtro !== 'todas' &&
+                filtro !== 'revisar'
+            ) {
                 if (i.estado !== 'activa' || i.pago_estado !== filtro)
                     return false;
             }
@@ -120,12 +138,13 @@ export default function EncuentroShowPage({
     };
 
     const openInscripcion = (i: InscripcionRow) => {
-        setSelected(i);
+        setSelectedId(i.id);
         setDialogKey((k) => k + 1);
     };
 
     const filtros: [Filtro, string, number][] = [
         ['todas', 'Todas', inscripciones.length],
+        ['revisar', 'Pagos por revisar', resumen.por_revisar],
         ['pendiente', 'Pendientes', resumen.pendientes],
         ['parcial', 'Parciales', resumen.parciales],
         ['pagado', 'Pagadas', resumen.pagados],
@@ -280,12 +299,26 @@ export default function EncuentroShowPage({
                         Inscripciones
                     </SectionTitle>
                     {inscripciones.length > 0 && (
-                        <Button asChild variant="outline" className="gap-2">
-                            <a href={`/encuentros/${encuentro.id}/exportar`}>
-                                <Download className="h-4 w-4" />
-                                Exportar a Excel
-                            </a>
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Button asChild variant="outline" className="gap-2">
+                                <Link
+                                    href={`/encuentros/${encuentro.id}/asistencia`}
+                                >
+                                    <ClipboardCheck className="h-4 w-4" />
+                                    Asistencia
+                                    {resumen.asistieron > 0 &&
+                                        ` (${resumen.asistieron})`}
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline" className="gap-2">
+                                <a
+                                    href={`/encuentros/${encuentro.id}/exportar`}
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Exportar a Excel
+                                </a>
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -363,6 +396,12 @@ export default function EncuentroShowPage({
                                                     </span>
                                                 </p>
                                             </div>
+                                            {i.estado === 'activa' &&
+                                                i.por_revisar > 0 && (
+                                                    <span className="rounded bg-chart-4/20 px-2 py-0.5 text-xs font-medium text-foreground">
+                                                        Pago por revisar
+                                                    </span>
+                                                )}
                                             {i.estado === 'cancelada' ? (
                                                 <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                                     Cancelada
@@ -395,8 +434,10 @@ export default function EncuentroShowPage({
                 key={dialogKey}
                 encuentroId={encuentro.id}
                 inscripcion={selected}
+                hoy={hoy}
+                metodos={metodos}
                 open={selected !== null}
-                onOpenChange={(open) => !open && setSelected(null)}
+                onOpenChange={(open) => !open && setSelectedId(null)}
             />
         </PageLayout>
     );

@@ -19,10 +19,12 @@ export default function EncuentroPublicoPage({
     encuentro,
     cierre,
     tallas,
+    metodos,
 }: {
     encuentro: EncuentroPublico;
     cierre: Cierre;
     tallas: string[];
+    metodos: string[];
 }) {
     return (
         <PublicLayout title={encuentro.nombre}>
@@ -108,7 +110,11 @@ export default function EncuentroPublicoPage({
                 {cierre ? (
                     <Cerrado cierre={cierre} encuentro={encuentro} />
                 ) : (
-                    <InscripcionForm encuentro={encuentro} tallas={tallas} />
+                    <InscripcionForm
+                        encuentro={encuentro}
+                        tallas={tallas}
+                        metodos={metodos}
+                    />
                 )}
             </div>
         </PublicLayout>
@@ -140,9 +146,11 @@ function Cerrado({
 function InscripcionForm({
     encuentro,
     tallas,
+    metodos,
 }: {
     encuentro: EncuentroPublico;
     tallas: string[];
+    metodos: string[];
 }) {
     const form = useForm({
         nombre: '',
@@ -159,15 +167,23 @@ function InscripcionForm({
         precio_id:
             encuentro.precios.length === 1 ? encuentro.precios[0].id : '',
         consentimiento: false,
+        // "Ya pagué" (opcional): el pago queda por revisar.
+        ya_pague: false,
+        pago_monto: '',
+        pago_metodo: '',
+        pago_nota: '',
+        pago_comprobante: null as File | null,
         // Trampa para bots: oculto, una persona no lo llena.
         sitio_web: '',
     });
     const { data } = form;
+    const elegido = encuentro.precios.find((p) => p.id === data.precio_id);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         // Con errores se queda donde está; la confirmación abre arriba.
         form.post(`${encuentro.base}/inscripcion`, {
+            forceFormData: true,
             preserveScroll: (page) =>
                 Object.keys(page.props.errors ?? {}).length > 0,
         });
@@ -310,6 +326,101 @@ function InscripcionForm({
                         </label>
                     ))}
                 </fieldset>
+
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                    <label className="flex items-start gap-3 text-sm text-foreground">
+                        <input
+                            type="checkbox"
+                            checked={data.ya_pague}
+                            onChange={(e) =>
+                                form.setData((d) => ({
+                                    ...d,
+                                    ya_pague: e.target.checked,
+                                    // Propone el valor de la opción elegida.
+                                    pago_monto:
+                                        d.pago_monto ||
+                                        (elegido
+                                            ? elegido.valor.toString()
+                                            : ''),
+                                }))
+                            }
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+                        />
+                        <span>
+                            Ya pagué (todo o una parte) y tengo el comprobante
+                            <span className="block text-xs text-muted-foreground">
+                                Si pagas después, podrás mandar el comprobante
+                                desde el enlace de tu inscripción.
+                            </span>
+                        </span>
+                    </label>
+                    {data.ya_pague && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <Field
+                                label="Cuánto pagaste ($)"
+                                htmlFor="pago_monto"
+                                required
+                            >
+                                <Input
+                                    id="pago_monto"
+                                    type="number"
+                                    min={1}
+                                    step={1000}
+                                    value={data.pago_monto}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'pago_monto',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label="Cómo pagaste (opcional)"
+                                htmlFor="pago_metodo"
+                            >
+                                <select
+                                    id="pago_metodo"
+                                    value={data.pago_metodo}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'pago_metodo',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+                                >
+                                    <option value="">—</option>
+                                    {metodos.map((m) => (
+                                        <option key={m} value={m}>
+                                            {m}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <div className="sm:col-span-2">
+                                <Field
+                                    label="Comprobante (foto o PDF, máx. 10 MB)"
+                                    htmlFor="pago_comprobante"
+                                    required
+                                >
+                                    <input
+                                        id="pago_comprobante"
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'pago_comprobante',
+                                                e.target.files?.[0] ?? null,
+                                            )
+                                        }
+                                        className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-foreground"
+                                    />
+                                </Field>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <label className="flex items-start gap-3 text-sm text-muted-foreground">
                     <input
