@@ -57,6 +57,7 @@ class EncuentroPublicoController extends Controller
             ],
             'cierre' => $encuentro->motivoCierre(EventCalendar::today()),
             'tallas' => Inscripcion::TALLAS,
+            'cortes' => Inscripcion::CORTES,
             'metodos' => InscripcionPago::METODOS,
         ]);
     }
@@ -90,6 +91,8 @@ class EncuentroPublicoController extends Controller
             'telefono' => ['required', 'string', 'max:30', 'regex:/^[0-9+()\s-]{7,30}$/'],
             'email' => ['nullable', 'email', 'max:150'],
             'talla' => ['nullable', Rule::in(Inscripcion::TALLAS)],
+            // Con talla hace falta el corte, para poder armar el pedido.
+            'corte' => ['nullable', 'required_with:talla', Rule::in(Inscripcion::CORTES)],
             'emergencia_nombre' => ['required', 'string', 'max:120'],
             'emergencia_telefono' => ['required', 'string', 'max:30', 'regex:/^[0-9+()\s-]{7,30}$/'],
             'precio_id' => ['required', Rule::exists('encuentro_precios', 'id')->where('encuentro_id', $encuentro->id)],
@@ -104,6 +107,8 @@ class EncuentroPublicoController extends Controller
             'telefono.required' => 'Escribe tu teléfono',
             'telefono.regex' => 'El teléfono solo puede tener números, espacios y el signo +',
             'email.email' => 'El correo no es válido',
+            'corte.required_with' => 'Elige el corte de la camiseta (masculino o femenino)',
+            'corte.in' => 'Elige el corte de la camiseta (masculino o femenino)',
             'emergencia_nombre.required' => 'Escribe un contacto de emergencia',
             'emergencia_telefono.required' => 'Escribe el teléfono del contacto de emergencia',
             'emergencia_telefono.regex' => 'El teléfono de emergencia solo puede tener números, espacios y el signo +',

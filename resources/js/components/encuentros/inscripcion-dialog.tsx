@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/dates';
 import {
+    formatCamiseta,
     formatMoney,
     PAGO_LABELS,
     PAGO_REGISTRO_CLASSES,
@@ -111,7 +112,7 @@ export function InscripcionDialog({
         ['Ciudad', inscripcion.ciudad],
         ['Teléfono', inscripcion.telefono],
         ['Correo', inscripcion.email],
-        ['Talla', inscripcion.talla],
+        ['Camiseta', formatCamiseta(inscripcion.talla, inscripcion.corte)],
         [
             'Emergencia',
             `${inscripcion.emergencia_nombre} · ${inscripcion.emergencia_telefono}`,

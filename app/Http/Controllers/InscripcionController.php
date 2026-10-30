@@ -51,6 +51,7 @@ class InscripcionController extends Controller
                 'grupo' => $i->grupo,
                 'precio_nombre' => $i->precio_nombre,
                 'talla' => $i->talla,
+                'corte' => $i->corte,
                 'saldo' => $i->saldo(),
                 'asistio' => $i->asistio_at !== null,
             ])->values(),
@@ -88,7 +89,7 @@ class InscripcionController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, [
                 'Código', 'Fecha', 'Nombre', 'Apelido', 'Grupo', 'Profesor', 'Graduación',
-                'Ciudad', 'Teléfono', 'Correo', 'Talla', 'Contacto de emergencia',
+                'Ciudad', 'Teléfono', 'Correo', 'Talla', 'Corte', 'Contacto de emergencia',
                 'Teléfono de emergencia', 'Opción', 'Valor', 'Pago', 'Pagado', 'Saldo',
                 'Pagos por revisar', 'Estado', 'Asistió', 'Notas',
             ], ';');
@@ -98,7 +99,7 @@ class InscripcionController extends Controller
                     $i->codigo,
                     $i->created_at->setTimezone('America/Bogota')->format('Y-m-d H:i'),
                     $i->nombre, $i->apelido, $i->grupo, $i->profesor, $i->graduacion,
-                    $i->ciudad, $i->telefono, $i->email, $i->talla,
+                    $i->ciudad, $i->telefono, $i->email, $i->talla, $i->corte,
                     $i->emergencia_nombre, $i->emergencia_telefono,
                     $i->precio_nombre, $i->precio_valor, $i->pago_estado,
                     $i->monto_pagado, $i->saldo(), $i->getAttribute('por_revisar'),

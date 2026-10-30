@@ -94,6 +94,18 @@ export function mapaLinkUrl(
         : null;
 }
 
+/** "M · corte femenino", o null sin talla. */
+export function formatCamiseta(
+    talla: string | null,
+    corte: string | null,
+): string | null {
+    if (!talla) {
+        return null;
+    }
+
+    return corte ? `${talla} · corte ${corte}` : talla;
+}
+
 export const ESTADO_LABELS: Record<EncuentroEstado, string> = {
     borrador: 'Borrador',
     publicado: 'Publicado',

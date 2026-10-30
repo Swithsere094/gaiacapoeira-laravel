@@ -88,6 +88,7 @@ export interface InscripcionRow {
     telefono: string;
     email: string | null;
     talla: string | null;
+    corte: string | null;
     emergencia_nombre: string;
     emergencia_telefono: string;
     precio_nombre: string;

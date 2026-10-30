@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { PageLayout } from '@/components/page-layout';
 import { SearchInput } from '@/components/search-input';
-import { formatMoney } from '@/lib/encuentros';
+import { formatCamiseta, formatMoney } from '@/lib/encuentros';
 import { cn } from '@/lib/utils';
 
 interface Asistente {
@@ -16,6 +16,7 @@ interface Asistente {
     grupo: string;
     precio_nombre: string;
     talla: string | null;
+    corte: string | null;
     saldo: number;
     asistio: boolean;
 }
@@ -137,7 +138,8 @@ export default function AsistenciaPage({
                                     <span className="block truncate text-sm text-muted-foreground">
                                         {i.grupo} · {i.precio_nombre}
                                         {i.talla &&
-                                            ` · talla ${i.talla}`} ·{' '}
+                                            ` · camiseta ${formatCamiseta(i.talla, i.corte)}`}{' '}
+                                        ·{' '}
                                         <span className="font-mono">
                                             {i.codigo}
                                         </span>

@@ -45,6 +45,7 @@ class InscripcionesTest extends TestCase
             'telefono' => '+57 300 123 4567',
             'email' => 'ana@example.com',
             'talla' => 'M',
+            'corte' => 'femenino',
             'emergencia_nombre' => 'Luis Restrepo',
             'emergencia_telefono' => '3007654321',
             'precio_id' => $encuentro->precios()->value('id'),
@@ -203,6 +204,26 @@ class InscripcionesTest extends TestCase
         $this->get("http://otro-encuentro.gaiacapoeira.com/inscripcion/{$inscripcion->token}")->assertNotFound();
     }
 
+    public function test_corte_de_la_camiseta(): void
+    {
+        $encuentro = $this->encuentro();
+
+        $this->post(self::PAGINA.'/inscripcion', $this->datos($encuentro, ['corte' => '']))->assertSessionHasErrors('corte');
+        $this->post(self::PAGINA.'/inscripcion', $this->datos($encuentro, ['corte' => 'unisex']))->assertSessionHasErrors('corte');
+        // Sin talla no hace falta el corte.
+        $this->inscribir($encuentro, ['talla' => '', 'corte' => '']);
+        $this->inscribir($encuentro, ['corte' => 'masculino']);
+        $this->inscribir($encuentro, ['nombre' => 'Otra persona']);
+
+        $this->assertSame('masculino', Inscripcion::where('corte', 'masculino')->value('corte'));
+        $this->actingAsRole('admin');
+        $this->get("/encuentros/{$encuentro->id}")->assertInertia(fn (Assert $page) => $page
+            ->where('resumen.camisetas', [
+                ['corte' => 'masculino', 'talla' => 'M', 'cantidad' => 1],
+                ['corte' => 'femenino', 'talla' => 'M', 'cantidad' => 1],
+            ]));
+    }
+
     // ── Gestión de inscripciones ────────────────────────────────────
 
     public function test_el_organizador_agrega_notas_y_cancela(): void
@@ -257,6 +278,7 @@ class InscripcionesTest extends TestCase
         $this->assertStringContainsString('Código;Fecha;Nombre', $csv);
         $this->assertStringContainsString('"Ana Restrepo";Borboleta;"Gaia Capoeira"', $csv);
         $this->assertStringContainsString('Asistió', $csv);
+        $this->assertStringContainsString(';M;femenino;', $csv);
         $this->assertStringContainsString('attachment; filename=batizado-2027-inscripciones-', (string) $response->headers->get('Content-Disposition'));
     }
 }

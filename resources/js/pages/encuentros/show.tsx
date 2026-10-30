@@ -43,6 +43,7 @@ interface Resumen {
     esperado: number;
     por_revisar: number;
     asistieron: number;
+    camisetas: { corte: string | null; talla: string; cantidad: number }[];
 }
 
 type Filtro = 'todas' | 'revisar' | PagoEstado | 'canceladas';
@@ -292,6 +293,10 @@ export default function EncuentroShowPage({
                 ))}
             </section>
 
+            {resumen.camisetas.length > 0 && (
+                <Camisetas camisetas={resumen.camisetas} />
+            )}
+
             {/* Inscripciones */}
             <section>
                 <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -440,5 +445,45 @@ export default function EncuentroShowPage({
                 onOpenChange={(open) => !open && setSelectedId(null)}
             />
         </PageLayout>
+    );
+}
+
+/** Camisetas a pedir (inscripciones activas), por corte y talla. */
+function Camisetas({ camisetas }: { camisetas: Resumen['camisetas'] }) {
+    const cortes = [...new Set(camisetas.map((c) => c.corte))];
+    const total = camisetas.reduce((sum, c) => sum + c.cantidad, 0);
+
+    return (
+        <section className="space-y-3 panel p-4">
+            <p className="text-sm text-muted-foreground">
+                Camisetas a pedir: {total}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+                {cortes.map((corte) => (
+                    <div key={corte ?? 'sin-corte'}>
+                        <p className="text-sm font-medium text-foreground">
+                            {corte
+                                ? `Corte ${corte}`
+                                : 'Sin corte (inscritos antes)'}
+                        </p>
+                        <ul className="mt-1 flex flex-wrap gap-2">
+                            {camisetas
+                                .filter((c) => c.corte === corte)
+                                .map((c) => (
+                                    <li
+                                        key={c.talla}
+                                        className="rounded-md bg-secondary px-2 py-1 text-sm text-foreground"
+                                    >
+                                        {c.talla}:{' '}
+                                        <span className="font-bold">
+                                            {c.cantidad}
+                                        </span>
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+        </section>
     );
 }

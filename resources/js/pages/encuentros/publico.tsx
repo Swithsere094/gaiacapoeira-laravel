@@ -22,11 +22,13 @@ export default function EncuentroPublicoPage({
     encuentro,
     cierre,
     tallas,
+    cortes,
     metodos,
 }: {
     encuentro: EncuentroPublico;
     cierre: Cierre;
     tallas: string[];
+    cortes: string[];
     metodos: string[];
 }) {
     const comoLlegar = mapaLinkUrl(
@@ -135,6 +137,7 @@ export default function EncuentroPublicoPage({
                     <InscripcionForm
                         encuentro={encuentro}
                         tallas={tallas}
+                        cortes={cortes}
                         metodos={metodos}
                     />
                 )}
@@ -168,10 +171,12 @@ function Cerrado({
 function InscripcionForm({
     encuentro,
     tallas,
+    cortes,
     metodos,
 }: {
     encuentro: EncuentroPublico;
     tallas: string[];
+    cortes: string[];
     metodos: string[];
 }) {
     const form = useForm({
@@ -184,6 +189,7 @@ function InscripcionForm({
         telefono: '',
         email: '',
         talla: '',
+        corte: '',
         emergencia_nombre: '',
         emergencia_telefono: '',
         precio_id:
@@ -282,21 +288,55 @@ function InscripcionForm({
                     })}
                 </div>
 
-                <Field label="Talla de camiseta (opcional)" htmlFor="talla">
-                    <select
-                        id="talla"
-                        value={data.talla}
-                        onChange={(e) => form.setData('talla', e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground sm:w-48"
-                    >
-                        <option value="">No aplica</option>
-                        {tallas.map((t) => (
-                            <option key={t} value={t}>
-                                {t}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Talla de camiseta (opcional)" htmlFor="talla">
+                        <select
+                            id="talla"
+                            value={data.talla}
+                            onChange={(e) =>
+                                form.setData((d) => ({
+                                    ...d,
+                                    talla: e.target.value,
+                                    corte: e.target.value ? d.corte : '',
+                                }))
+                            }
+                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+                        >
+                            <option value="">No aplica</option>
+                            {tallas.map((t) => (
+                                <option key={t} value={t}>
+                                    {t}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                    {data.talla && (
+                        <Field
+                            label="Corte de la camiseta"
+                            htmlFor="corte"
+                            required
+                        >
+                            <select
+                                id="corte"
+                                value={data.corte}
+                                onChange={(e) =>
+                                    form.setData('corte', e.target.value)
+                                }
+                                aria-invalid={
+                                    form.errors.corte ? true : undefined
+                                }
+                                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+                            >
+                                <option value="">Elige el corte</option>
+                                {cortes.map((c) => (
+                                    <option key={c} value={c}>
+                                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                    )}
+                </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     {text('emergencia_nombre', 'Contacto de emergencia', {

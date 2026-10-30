@@ -13,6 +13,7 @@ use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -97,6 +98,7 @@ class EncuentroController extends Controller
                 'telefono' => $i->telefono,
                 'email' => $i->email,
                 'talla' => $i->talla,
+                'corte' => $i->corte,
                 'emergencia_nombre' => $i->emergencia_nombre,
                 'emergencia_telefono' => $i->emergencia_telefono,
                 'precio_nombre' => $i->precio_nombre,
@@ -124,6 +126,7 @@ class EncuentroController extends Controller
             'resumen' => [
                 'por_revisar' => $activas->filter(fn (Inscripcion $i) => $porRevisar($i) > 0)->count(),
                 'asistieron' => $activas->whereNotNull('asistio_at')->count(),
+                'camisetas' => $this->camisetas($activas),
                 'inscritos' => $activas->count(),
                 'pagados' => $activas->where('pago_estado', 'pagado')->count(),
                 'parciales' => $activas->where('pago_estado', 'parcial')->count(),
@@ -480,6 +483,28 @@ class EncuentroController extends Controller
             Uploads::delete($invitado->foto_url);
             $invitado->delete();
         });
+    }
+
+    /**
+     * Camisetas a pedir (inscripciones activas con talla), por corte y talla
+     * en el orden de las listas: [{corte, talla, cantidad}].
+     *
+     * @param  Collection<int, Inscripcion>  $activas
+     * @return list<array{corte: string|null, talla: string, cantidad: int}>
+     */
+    private function camisetas($activas): array
+    {
+        $filas = [];
+        foreach ([...Inscripcion::CORTES, null] as $corte) {
+            foreach (Inscripcion::TALLAS as $talla) {
+                $cantidad = $activas->where('talla', $talla)->where('corte', $corte)->count();
+                if ($cantidad > 0) {
+                    $filas[] = ['corte' => $corte, 'talla' => $talla, 'cantidad' => $cantidad];
+                }
+            }
+        }
+
+        return $filas;
     }
 
     /** @return array<string, mixed> */

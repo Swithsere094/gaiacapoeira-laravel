@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
  * @property string $telefono
  * @property string|null $email
  * @property string|null $talla
+ * @property string|null $corte masculino | femenino
  * @property string $emergencia_nombre
  * @property string $emergencia_telefono
  * @property string|null $precio_id
@@ -59,6 +60,9 @@ class Inscripcion extends Model
 
     public const TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
+    /** Corte de la camiseta: lo elige cada persona, sin relación con su género. */
+    public const CORTES = ['masculino', 'femenino'];
+
     /** Sin 0/O ni 1/I/L: se leen mal en una captura. */
     private const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -66,7 +70,7 @@ class Inscripcion extends Model
 
     protected $fillable = [
         'encuentro_id', 'codigo', 'token', 'nombre', 'apelido', 'grupo',
-        'profesor', 'graduacion', 'ciudad', 'telefono', 'email', 'talla',
+        'profesor', 'graduacion', 'ciudad', 'telefono', 'email', 'talla', 'corte',
         'emergencia_nombre', 'emergencia_telefono', 'precio_id',
         'precio_nombre', 'precio_valor', 'pago_estado', 'monto_pagado',
         'estado', 'notas', 'consentimiento_at', 'locale', 'asistio_at',
