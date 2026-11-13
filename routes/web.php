@@ -16,6 +16,7 @@ use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\PoliticaController;
+use App\Http\Controllers\PortuguesController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RetoController;
 use App\Http\Controllers\RetoDemoController;
@@ -104,9 +105,24 @@ Route::middleware('auth')->group(function () {
     Route::get('uploads/{path}', [UploadController::class, 'show'])->where('path', '.+')->name('uploads');
 
     // Páginas de ejemplo (contenido fijo, todavía sin base de datos).
+    // Las lecciones de portugués quedan sin enlace, para retomarlas más adelante.
     Route::inertia('articulos', 'articulos')->name('articulos');
     Route::inertia('movimientos', 'movimientos')->name('movimientos');
-    Route::inertia('portugues', 'portugues')->name('portugues');
+    Route::inertia('portugues/lecciones', 'portugues/lecciones')->name('portugues.lecciones');
+
+    // Portugués: asociaciones inverosímiles con las 1000 palabras más usadas.
+    // Cada persona toca solo sus tarjetas.
+    Route::prefix('portugues')->group(function () {
+        Route::get('/', [PortuguesController::class, 'index'])->name('portugues');
+        Route::put('palabras/{palabra}', [PortuguesController::class, 'guardar'])->whereUuid('palabra');
+        Route::post('palabras/{palabra}/repaso', [PortuguesController::class, 'repasar'])->whereUuid('palabra');
+        Route::post('palabras/{palabra}/aprendida', [PortuguesController::class, 'marcarAprendida'])->whereUuid('palabra');
+        Route::delete('palabras/{palabra}/aprendida', [PortuguesController::class, 'desmarcarAprendida'])->whereUuid('palabra');
+        Route::post('palabras/{palabra}/saltar', [PortuguesController::class, 'saltar'])->whereUuid('palabra');
+        Route::delete('palabras/{palabra}/saltar', [PortuguesController::class, 'dejarDeSaltar'])->whereUuid('palabra');
+        Route::post('lotes/{lote}', [PortuguesController::class, 'avanzarLote'])->whereNumber('lote');
+        Route::delete('lotes/{lote}', [PortuguesController::class, 'deshacerLote'])->whereNumber('lote');
+    });
 
     // ── Según los permisos del rol (App\Support\Permissions) ──────────
     // El admin los tiene todos. Sin el permiso: 403.

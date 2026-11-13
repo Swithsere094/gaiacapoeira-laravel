@@ -12,6 +12,7 @@ import {
     BarChart3,
     KeyRound,
     CalendarDays,
+    Languages,
     Ticket,
     Trophy,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ import { cn } from '@/lib/utils';
 const baseNavItems = [
     { href: '/galera', label: 'Galera', icon: Play },
     { href: '/canciones', label: 'Sabiá cantou', icon: Music },
+    { href: '/portugues', label: 'O caminho', icon: Languages },
     { href: '/politica', label: 'Política', icon: ScrollText },
     { href: '/eventos', label: 'Eventos', icon: CalendarDays },
 ];
@@ -126,7 +128,7 @@ export function Navigation() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden items-center gap-1 md:flex">
+                    <div className="hidden items-center gap-1 lg:flex">
                         {navItems.map((item) => (
                             <Link
                                 key={item.href}
@@ -135,13 +137,13 @@ export function Navigation() {
                                     isActive(item.href) ? 'page' : undefined
                                 }
                                 className={cn(
-                                    'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all',
+                                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all xl:px-4',
                                     isActive(item.href)
                                         ? 'bg-primary text-primary-foreground'
                                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
                                 )}
                             >
-                                <item.icon className="h-4 w-4" />
+                                <item.icon className="hidden h-4 w-4 xl:block" />
                                 {item.label}
                             </Link>
                         ))}
@@ -211,7 +213,7 @@ export function Navigation() {
                     <button
                         type="button"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="rounded-md p-2 text-foreground transition-colors hover:bg-secondary md:hidden"
+                        className="rounded-md p-2 text-foreground transition-colors hover:bg-secondary lg:hidden"
                         aria-label={
                             mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'
                         }
@@ -230,7 +232,7 @@ export function Navigation() {
                 {mobileMenuOpen && (
                     <div
                         id="menu-movil"
-                        className="border-t border-border py-4 md:hidden"
+                        className="border-t border-border py-4 lg:hidden"
                     >
                         <div className="flex flex-col gap-2">
                             {navItems.map((item) => (
